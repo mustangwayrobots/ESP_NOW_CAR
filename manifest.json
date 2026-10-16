@@ -1,0 +1,11 @@
+{
+  "name": "Firmware Installer",
+  "builds": [
+    {
+      "chipFamily": "ESP32-C3",
+      "parts": [
+        { "path": "./build/firmware.bin", "offset": 0 }
+      ]
+    }
+  ]
+}
