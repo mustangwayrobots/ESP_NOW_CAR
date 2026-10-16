@@ -1,10 +1,10 @@
 {
-  "additionalFiles": "",
+  "additionalFiles": "..\\..,..\\..",
   "builtInLibrariesFolders": "C:\\Users\\hogfa\\AppData\\Local\\Arduino15\\libraries",
   "compiler.optimization_flags": "-Os",
   "customBuildProperties": "",
   "fqbn": "esp32:esp32:makergo_c3_supermini:UploadSpeed=921600,CDCOnBoot=default,CPUFreq=160,FlashFreq=80,PartitionScheme=default,DebugLevel=none,EraseFlash=none",
   "hardwareFolders": "C:\\Users\\hogfa\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.12,C:\\Users\\hogfa\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.12",
   "otherLibrariesFolders": "c:\\Users\\hogfa\\Documents\\Arduino\\libraries",
-  "sketchLocation": "C:\\Users\\hogfa\\Documents\\Arduino\\ESP32-C3_NOW_RC_Receiver"
+  "sketchLocation": "C:\\Users\\hogfa\\Documents\\Arduino\\ESP_NOW_CAR"
 }
