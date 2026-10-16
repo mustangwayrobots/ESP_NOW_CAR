@@ -3,31 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <title>Mustang Robotics - Installer</title>
-    <!-- Loads the ESP flasher button tools -->
+    <!-- Loads the ESP flasher button backend scripts -->
     <script type="module" src="https://unpkg.com"></script>
     <style>
         body { font-family: system-ui, sans-serif; background: #0f172a; color: #fff; padding: 50px; text-align: center; }
-        .installer-card { background: #1e293b; max-width: 500px; margin: 0 auto; padding: 40px; border-radius: 16px; border: 1px solid #334155; }
-        h1 { color: #38bdf8; margin-top: 0; }
+        .installer-card { background: #1e293b; max-width: 500px; margin: 40px auto; padding: 40px; border-radius: 16px; border: 1px solid #334155; }
+        h1 { color: #38bdf8; margin-top: 0; text-transform: uppercase; }
         p { color: #94a3b8; line-height: 1.6; }
-        esp-web-install-button { display: block; margin-top: 30px; }
+        .button-container { display: flex; justify-content: center; margin-top: 30px; min-height: 50px; }
     </style>
 </head>
 <body>
 
     <div class="installer-card">
-        <!-- The browser dynamically reads the repository name to fill this out -->
-        <h1 id="title">Loading Project...</h1>
+        <h1 id="title">ESP NOW CAR</h1>
         <p>Connect your microcontroller via USB and click the installer button below to flash the core program.</p>
         
-        <!-- Standard button pointing to the local configuration file -->
-        <esp-web-install-button manifest="./manifest.json"></esp-web-install-button>
+        <div class="button-container">
+            <!-- Points explicitly to your local manifest file configuration -->
+            <esp-web-install-button manifest="./manifest.json"></esp-web-install-button>
+        </div>
     </div>
 
-    <script>
-        // Tiny automation script that puts the repository name in the header automatically!
-        const repoName = window.location.pathname.split('/')[1] || "Robotics Project";
-        document.getElementById('title').innerText = repoName.replace(/-/g, ' ').replace(/_/g, ' ');
-    </script>
 </body>
 </html>
