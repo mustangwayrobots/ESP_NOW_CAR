@@ -8,7 +8,7 @@
     <style>
         body { font-family: system-ui, sans-serif; background: #0f172a; color: #fff; padding: 50px; text-align: center; }
         .installer-card { background: #1e293b; max-width: 500px; margin: 40px auto; padding: 40px; border-radius: 16px; border: 1px solid #334155; }
-        h1 { color: #38bdf8; margin-top: 0; text-transform: uppercase; }
+        h1 { color: #38bdf8; margin-top: 0; }
         p { color: #94a3b8; line-height: 1.6; }
         .button-container { display: flex; justify-content: center; margin-top: 30px; min-height: 50px; }
     </style>
@@ -16,11 +16,11 @@
 <body>
 
     <div class="installer-card">
-        <h1 id="title">ESP NOW CAR</h1>
+        <h1>🚗 ESP NOW CAR</h1>
         <p>Connect your microcontroller via USB and click the installer button below to flash the core program.</p>
         
         <div class="button-container">
-            <!-- Points explicitly to your local manifest file configuration -->
+            <!-- Points to your local manifest file configuration -->
             <esp-web-install-button manifest="./manifest.json"></esp-web-install-button>
         </div>
     </div>
