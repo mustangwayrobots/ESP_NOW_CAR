@@ -8,7 +8,7 @@
     <style>
         body { font-family: system-ui, sans-serif; background: #0f172a; color: #fff; padding: 50px; text-align: center; }
         .installer-card { background: #1e293b; max-width: 500px; margin: 40px auto; padding: 40px; border-radius: 16px; border: 1px solid #334155; }
-        h1 { color: #38bdf8; margin-top: 0; }
+        h1 { color: #38bdf8; margin-top: 0; text-transform: uppercase; }
         p { color: #94a3b8; line-height: 1.6; }
         .button-container { display: flex; justify-content: center; margin-top: 30px; min-height: 50px; }
     </style>
@@ -16,7 +16,8 @@
 <body>
 
     <div class="installer-card">
-        <h1>🚗 ESP NOW CAR</h1>
+        <!-- The Javascript below will overwrite this loading text instantly -->
+        <h1 id="project-title">Loading Project...</h1>
         <p>Connect your microcontroller via USB and click the installer button below to flash the core program.</p>
         
         <div class="button-container">
@@ -25,5 +26,15 @@
         </div>
     </div>
 
+    <script>
+        // Automatically reads the GitHub repository name from the URL path!
+        const pathParts = window.location.pathname.split('/').filter(p => p !== "");
+        if (pathParts.length > 0) {
+            // Grabs the last segment (the repo folder name) and swaps underscores with spaces
+            const repoName = pathParts[pathParts.length - 1];
+            document.getElementById('project-title').innerText = "🤖 " + repoName.replace(/_/g, ' ').replace(/-/g, ' ');
+        }
+    </script>
 </body>
 </html>
+
