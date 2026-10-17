@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Mustang Robotics - Installer</title>
-    <!-- Loads the ESP flasher button backend scripts -->
-    <script type="module" src="https://unpkg.com"></script>
+    <!-- Bypasses CORS blocks completely using jsDelivr global mirrors -->
+    <script type="module" src="https://jsdelivr.net"></script>
     <style>
         body { font-family: system-ui, sans-serif; background: #0f172a; color: #fff; padding: 50px; text-align: center; }
         .installer-card { background: #1e293b; max-width: 500px; margin: 40px auto; padding: 40px; border-radius: 16px; border: 1px solid #334155; }
@@ -16,25 +16,25 @@
 <body>
 
     <div class="installer-card">
-        <!-- The Javascript below will overwrite this loading text instantly -->
-        <h1 id="project-title">Loading Project...</h1>
+        <!-- Automatically figures out the exact repository folder title -->
+        <h1 id="project-title">🤖 LOADING...</h1>
         <p>Connect your microcontroller via USB and click the installer button below to flash the core program.</p>
         
         <div class="button-container">
-            <!-- Points to your local manifest file configuration -->
+            <!-- Points cleanly to the local configuration file -->
             <esp-web-install-button manifest="./manifest.json"></esp-web-install-button>
         </div>
     </div>
 
     <script>
-        // Automatically reads the GitHub repository name from the URL path!
+        // Reads your browser path name to dynamically calculate the project title string
         const pathParts = window.location.pathname.split('/').filter(p => p !== "");
         if (pathParts.length > 0) {
-            // Grabs the last segment (the repo folder name) and swaps underscores with spaces
             const repoName = pathParts[pathParts.length - 1];
             document.getElementById('project-title').innerText = "🤖 " + repoName.replace(/_/g, ' ').replace(/-/g, ' ');
         }
     </script>
 </body>
 </html>
+
 
