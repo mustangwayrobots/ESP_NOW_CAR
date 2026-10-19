@@ -4,19 +4,19 @@
     <meta charset="UTF-8">
     <title>Robotics Firmware Installer</title>
     
-    <!-- Google Fonts: Orbitron -->
+    <!-- Google Fonts: Explicitly load Orbitron with full weight and italic ranges -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:ital,wght@1,400..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
 
     <!-- Load official ESP Web Tools script -->
     <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
     
     <style>
-        /* Apply Orbitron to all standard elements */
+        /* Force Orbitron Italic globally across all elements */
         * {
             font-family: 'Orbitron', sans-serif !important;
-            font-style: italic;
+            font-style: italic !important;
         }
 
         body {
@@ -120,22 +120,13 @@
             justify-content: center;
             margin-top: 10px;
         }
-
-        /* Forces ESP Web Tools button element to inherit Orbitron styling */
-        esp-web-install-button {
-            --esp-tools-button-font-family: 'Orbitron', sans-serif;
-            font-family: 'Orbitron', sans-serif !important;
-            font-style: italic;
-        }
     </style>
 </head>
 <body>
-<!-- Back to Hub Navigation (Absolute Path) -->
+
+    <!-- Single, clean back link pointing directly to your absolute flash hub path -->
     <div class="top-nav">
         <a href="/flash/" class="back-link">← BACK TO PROJECT HUB</a>
-    </div>
-    <div class="top-nav">
-        <a href="../" class="back-link">← BACK TO PROJECT HUB</a>
     </div>
 
     <div class="installer-card">
@@ -195,7 +186,7 @@
             }
         }
 
-        // Penetrate Shadow DOM of ESP Web Tools button to apply Orbitron inside the Web Component
+        // Force Orbitron Italic inside the ESP Web Tools shadow DOM button
         function styleCustomButton() {
             const installBtn = document.querySelector('esp-web-install-button');
             if (installBtn && installBtn.shadowRoot) {
@@ -214,7 +205,6 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             checkSerialSupport();
-            // Wait brief moment for Web Component shadow root initialization
             setTimeout(styleCustomButton, 300);
         });
     </script>
