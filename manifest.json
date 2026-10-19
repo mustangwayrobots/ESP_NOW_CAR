@@ -1,0 +1,12 @@
+{
+  "name": "Mustang Web Firmware Installer",
+  "builds": [
+    {
+      "chipFamily": "ESP32-C3",
+      "parts": [
+        { "path": "./build/esp32.esp32.makergo_c3_supermini/ESP_NOW_CAR.ino.merged.bin", "offset": 0 }
+      ]
+    }
+  ]
+}
+
