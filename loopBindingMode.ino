@@ -1,83 +1,59 @@
 /**
  * ==============================================================================
- * loopNormalMode.ino (Car Receiver - Restored & Verified Baseline)
+ * loopBindingMode.ino (Car Receiver - Deep Debug Flag Tracking Layout)
+ * Drives the high-frequency pairing handshake routine and flashing strobe.
  * ==============================================================================
  */
-void loopNormalMode(){
-  static uint32_t rxPreviousMillis = 0; 
-  static uint32_t lastTransmitTime = 0;
-  static unsigned long buttonPressedTime = 0; 
-  static bool lastButtonState = HIGH;
-  
-  // --- BUTTON LONG-PRESS CAPTURE ENGINE ---
-  // FIXED: Strictly matches the "BindPin" declaration from your main tab configuration
-  bool currentButtonState = digitalRead(BindPin);
-  if (currentButtonState == LOW && lastButtonState == HIGH) {
-    buttonPressedTime = millis();
-    Serial.println("[INPUT] Bind button engaged down. Keep holding to pair...");
-  } 
-  else if (currentButtonState == LOW && lastButtonState == LOW) {
-    if (millis() - buttonPressedTime > 3000) { 
-      Serial.println("\n[SYS] Long Press Verified! Switching runtime to Pairing Mode...");
-      ledcWrite(A1Pin, 0); ledcWrite(A2Pin, 0); ledcWrite(B1Pin, 0); ledcWrite(B2Pin, 0);
-      ReceiveBindingComplete = false; 
-      SendBindingComplete = false; 
-      NormalMode = false; 
-      setupBindingMode(); 
-      return; 
-    }
+void loopBindingMode(){
+  // Fast blink strobe (50ms) denotes pairing activity runtime boundaries
+  static unsigned long lastBlink;
+  static bool ledState = false;
+  if(millis() - lastBlink > 50) {
+    lastBlink = millis();
+    ledState = !ledState;
+    digitalWrite(STATUS_LED, ledState ? LOW : HIGH); 
   }
-  lastButtonState = currentButtonState;
 
-  // --- TELEMETRY BROADCAST ENGINES ---
-  if((millis() - lastTransmitTime) > 5000){
-    lastTransmitTime = millis();
-    SendingData.protocolMode = 1; 
-    SendingData.battery = 3700; // Static dummy bypasses ADC2 lock
-    
-    uint8_t remoteMac[6];
-    if (readStoredMac(remoteMac)) {
-      if (DEBUG_MODE) Serial.printf("[COMM-TX] Telemetry burst out. Battery Sim: %dmV\n", SendingData.battery);
-      esp_now_send(remoteMac, (uint8_t *)&SendingData, sizeof(SendingData));
+  // --- NEW DIAGNOSTIC MONITOR BLOCK ---
+  static unsigned long lastDebugPrint = 0;
+  if (millis() - lastDebugPrint > 500) {
+    lastDebugPrint = millis();
+    Serial.printf("[CAR-FLAGS] ReceiveBindingComplete = %d | SendBindingComplete = %d\n", 
+                  ReceiveBindingComplete, SendBindingComplete);
+  }
+
+  // Phase 2: If we heard the transmitter, continuously reply back with our identity confirmation
+  if (ReceiveBindingComplete && !SendBindingComplete) {
+    static unsigned long lastTxTime;
+    if (millis() - lastTxTime > 150) { 
+      lastTxTime = millis();
+      
+      RC_Packet_Structure confirmationPacket;
+      confirmationPacket.protocolMode = 2; // Code 2 = Handshake Validation
+      
+      if (DEBUG_MODE) Serial.println("[LOOP-BIND] Sending registration handshake back to Remote via Broadcast...");
+      
+      uint8_t broadTarget[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+      esp_now_send(broadTarget, (uint8_t *) &confirmationPacket, sizeof(confirmationPacket));
     }
   }
 
-  // --- CONTROLLER COMMAND INGESTION AND HARDWARE OUTS ---
-  if(NewDataFlag == true){
-    NewDataFlag = false; 
-    rxPreviousMillis = millis();    
-    digitalWrite(STATUS_LED, LOW); // LED SOLID ON when receiving data stream
-
-    if (DEBUG_MODE) {
-      Serial.printf("[DATA-RX] Motors A1/A2: %4d/%4d | Motors B1/B2: %4d/%4d | Weapon: %3d\n",
-                    ReceivingData.motor_A1, ReceivingData.motor_A2, 
-                    ReceivingData.motor_B1, ReceivingData.motor_B2, ReceivingData.weapon);
-    }
-
-    if((ReceivingData.motor_A1!=0 && ReceivingData.motor_A2!=0) || (ReceivingData.motor_B1!=0 && ReceivingData.motor_B2!=0)){
-      ledcWrite(A1Pin, 0); ledcWrite(A2Pin, 0); ledcWrite(B1Pin, 0); ledcWrite(B2Pin, 0);      
-      Serial.println("[CRIT] Directional Conflict Found! Motors killed for safety.");
-    } else {
-      ledcWrite(A1Pin, constrain(ReceivingData.motor_A1, 0, 1023));
-      ledcWrite(A2Pin, constrain(ReceivingData.motor_A2, 0, 1023));
-      ledcWrite(B1Pin, constrain(ReceivingData.motor_B1, 0, 1023));
-      ledcWrite(B2Pin, constrain(ReceivingData.motor_B2, 0, 1023));  
-      weapon.write(ReceivingData.weapon);
-    }    
+  // Phase 3: Both flags are true! Safe to commit to NVS flash memory and reboot
+  if (SendBindingComplete && ReceiveBindingComplete) {
+      char remoteMacStr[18]; 
+      snprintf(remoteMacStr, sizeof(remoteMacStr), "%02x:%02x:%02x:%02x:%02x:%02x",
+               capturedRemoteMac[0], capturedRemoteMac[1], capturedRemoteMac[2],
+               capturedRemoteMac[3], capturedRemoteMac[4], capturedRemoteMac[5]);      
+      
+      Serial.printf("[SUCCESS] PAIR COMPLETE! Committing address directly to NVS registers: %s\n", remoteMacStr);
+      writeStoredMac(capturedRemoteMac);
+      
+      digitalWrite(STATUS_LED, HIGH); // Turn LED off cleanly before rebooting
+      delay(1000); // Give file systems an explicit moment to safely close
+      Serial.println("[SYS] Rebooting into Driving Loops now...");
+      ESP.restart();
   }
-
-  // --- CONNECTION TIMEOUT SAFETY BREAKS ---
-  if((millis() - rxPreviousMillis) > 500){ 
-    ledcWrite(A1Pin, 0); ledcWrite(A2Pin, 0);
-    ledcWrite(B1Pin, 0); ledcWrite(B2Pin, 0);      
-    
-    static unsigned long lastSlowBlink; 
-    static bool slowLedState = false;
-    if(millis() - lastSlowBlink > 500) {
-      lastSlowBlink = millis(); 
-      slowLedState = !slowLedState;
-      digitalWrite(STATUS_LED, slowLedState ? LOW : HIGH); 
-      if (DEBUG_MODE) Serial.println("[WARN] Signal lost from controller for >500ms. Failsafe locks active.");
-    }
-  } 
 }
+
+
+

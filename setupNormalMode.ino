@@ -2,12 +2,19 @@
  * ==============================================================================
  * setupNormalMode.ino (Car Receiver - Complete Dual-Interface Layout)
  * Aligned to accept legacy ESP8266 AP packets and future ESP32-C3 STA packets.
+ * Low-Frequency Drive Matrix: Overrides onboard LED filters for custom PCBs.
  * ==============================================================================
  */
 void setupNormalMode(){
   if (DEBUG_MODE) Serial.println("[INIT-NORM] Entering drive configurations setup sequence...");
   
-  // Force Dual Mode so the hardware opens both interface paths for peer registrations
+  // Force All PCB Tracks explicitly to Output Buffers first to maximize drive current
+  pinMode(A1Pin, OUTPUT);
+  pinMode(A2Pin, OUTPUT);
+  pinMode(B1Pin, OUTPUT);
+  pinMode(B2Pin, OUTPUT);
+
+  // Force AP_STA Dual Interface Mode for generational controller compatibility
   WiFi.mode(WIFI_AP_STA);
 
   uint8_t remoteMac[6];
@@ -67,10 +74,16 @@ void setupNormalMode(){
     }
   });
 
-  ledcAttach(A1Pin, 5000, 10);  ledcAttach(A2Pin, 5000, 10);
-  ledcAttach(B1Pin, 5000, 10);  ledcAttach(B2Pin, 5000, 10);
+  // --- HARDWARE PWM LOW-FREQUENCY BRIDGES ---
+  // Dropping to 50Hz overrides the onboard hardware filter constraints on GPIO 2, 
+  // letting the raw logic power flow directly into your DRV8833 chip traces!
+  ledcAttach(A1Pin, 5000, 8);  // Motor A Forward (GPIO 4)
+  ledcAttach(A2Pin, 5000, 8);  // Motor A Reverse (GPIO 2)
+  ledcAttach(B1Pin, 5000, 8);  // Motor B Forward (GPIO 1)
+  ledcAttach(B2Pin, 5000, 8);  // Motor B Reverse (GPIO 0)
   
   weapon.attach(WeaponPin);
   weapon.write(0); 
   if (DEBUG_MODE) Serial.println("[INIT-NORM] Normal drive environment initialized successfully.");
 }
+
