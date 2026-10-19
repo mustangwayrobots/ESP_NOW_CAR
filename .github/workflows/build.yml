@@ -11,7 +11,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
+      - name: Checkout Project Repository
         uses: actions/checkout@v4
 
       - name: Setup Arduino CLI
@@ -23,9 +23,15 @@ jobs:
           arduino-cli core update-index
           arduino-cli core install esp32:esp32
 
+      - name: Pull Central Custom Libraries
+        run: |
+          # Automatically downloads your central library collection into the Arduino environment
+          mkdir -p /home/runner/Arduino/libraries
+          git clone https://github.com/mustangwayrobots/arduino-libraries.git /home/runner/Arduino/libraries/custom-libs || true
+
       - name: Compile Sketch
         run: |
-          # Compiles using the ESP32-C3 generic target (fully compatible with Super Mini)
+          # Automatically finds and compiles whichever .ino sketch is in the repository
           arduino-cli compile --fqbn esp32:esp32:esp32c3 --output-dir ./build .
 
       - name: Prepare Files for Web Flasher
