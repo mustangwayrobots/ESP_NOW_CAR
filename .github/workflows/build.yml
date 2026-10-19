@@ -25,13 +25,12 @@ jobs:
 
       - name: Pull Central Custom Libraries
         run: |
-          # Automatically downloads your central library collection into the Arduino environment
+          # Clones your central library repository straight into the cloud compiler's library folder
           mkdir -p /home/runner/Arduino/libraries
           git clone https://github.com/mustangwayrobots/arduino-libraries.git /home/runner/Arduino/libraries/custom-libs || true
 
       - name: Compile Sketch
         run: |
-          # Automatically finds and compiles whichever .ino sketch is in the repository
           arduino-cli compile --fqbn esp32:esp32:esp32c3 --output-dir ./build .
 
       - name: Prepare Files for Web Flasher
