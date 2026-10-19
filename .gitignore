@@ -1,2 +1,9 @@
+# Compiled binaries and temporary build folders
+build/
+*.bin
 *.hex
 *.elf
+
+# Arduino IDE local build artifacts
+*.a
+*.o
