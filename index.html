@@ -2,28 +2,83 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Mustang Robotics - Installer</title>
-    <!-- Load the official ESP Web Tools installer script component -->
+    <title>Robotics Firmware Installer</title>
+    <!-- Load official ESP Web Tools script -->
     <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
     <style>
-        body { font-family: system-ui, sans-serif; background: #0f172a; color: #fff; padding: 50px; text-align: center; }
-        .installer-card { background: #1e293b; max-width: 500px; margin: 40px auto; padding: 40px; border-radius: 16px; border: 1px solid #334155; }
-        h1 { color: #38bdf8; margin-top: 0; text-transform: uppercase; }
-        p { color: #94a3b8; line-height: 1.6; }
-        .button-container { display: flex; justify-content: center; margin-top: 30px; min-height: 50px; }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 80vh;
+        }
+        .installer-card {
+            background-color: #1e293b;
+            width: 100%;
+            max-width: 520px;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+            border: 1px solid #334155;
+            text-align: center;
+        }
+        .logo {
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+        h1 {
+            color: #38bdf8;
+            font-size: 24px;
+            margin: 15px 0 20px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        p {
+            color: #94a3b8;
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
 
     <div class="installer-card">
-        <h1 id="project-title">🤖 MUSTANG ROBOTICS</h1>
-        <p>Connect your ESP32-C3 via USB and click the installer button below to flash the firmware.</p>
+        <div class="logo">🤖</div>
+        <!-- Dynamically populated project title -->
+        <h1 id="project-title">Loading Project...</h1>
+        <p>Connect your ESP32-C3 microcontroller via USB and click below to flash the firmware directly from your browser.</p>
         
         <div class="button-container">
-            <!-- Official ESP Web Tools custom element pointing to your manifest -->
             <esp-web-install-button manifest="./manifest.json"></esp-web-install-button>
         </div>
     </div>
 
+    <script>
+        // Automatically extracts the GitHub repository name from the live URL path
+        try {
+            const pathParts = window.location.pathname.split('/').filter(Boolean);
+            if (pathParts.length > 0) {
+                let repoName = pathParts[pathParts.length - 1];
+                // Clean up underscores and hyphens so it reads nicely (e.g., "ESP_NOW_CAR" -> "ESP NOW CAR")
+                repoName = repoName.replace(/[_]/g, ' ').replace(/[-]/g, ' ');
+                document.getElementById('project-title').innerText = repoName;
+            } else {
+                document.getElementById('project-title').innerText = "Robotics Firmware";
+            }
+        } catch (e) {
+            document.getElementById('project-title').innerText = "Robotics Firmware";
+        }
+    </script>
 </body>
 </html>
