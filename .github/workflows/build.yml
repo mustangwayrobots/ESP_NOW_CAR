@@ -17,24 +17,19 @@ jobs:
       - name: Setup Arduino CLI
         uses: arduino/setup-arduino-cli@v2
 
-      - name: Install Core (ESP32)
+      - name: Initialize Arduino CLI & Add ESP32 Core
         run: |
+          arduino-cli config init --additional-urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
           arduino-cli core update-index
           arduino-cli core install esp32:esp32
 
-      - name: Install Required Libraries
-        run: |
-          # Add any external libraries your project needs here, for example:
-          # arduino-cli lib install "FastLED"
-
       - name: Compile Sketch
         run: |
-          # Compiles the sketch and generates the binary outputs
+          # Compiles using the ESP32-C3 generic target (fully compatible with Super Mini)
           arduino-cli compile --fqbn esp32:esp32:esp32c3 --output-dir ./build .
 
       - name: Prepare Files for Web Flasher
         run: |
-          # Moves and renames the merged binary so manifest.json can read it
           cp ./build/*.ino.merged.bin ./firmware.bin
 
       - name: Deploy to GitHub Pages
