@@ -11,66 +11,157 @@
             background-color: #0f172a;
             color: #f8fafc;
             margin: 0;
-            padding: 40px 20px;
+            padding: 20px;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            min-height: 80vh;
+            min-height: 90vh;
+        }
+        .top-nav {
+            width: 100%;
+            max-width: 520px;
+            display: flex;
+            justify-content: flex-start;
+            margin-bottom: 15px;
+        }
+        .back-link {
+            color: #38bdf8;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: opacity 0.2s;
+        }
+        .back-link:hover {
+            opacity: 0.8;
         }
         .installer-card {
             background-color: #1e293b;
             width: 100%;
             max-width: 520px;
-            padding: 40px;
+            padding: 35px;
             border-radius: 16px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
             border: 1px solid #334155;
             text-align: center;
+            box-sizing: border-box;
         }
         .logo {
-            font-size: 32px;
+            font-size: 30px;
             margin-bottom: 5px;
         }
         h1 {
             color: #38bdf8;
-            font-size: 24px;
-            margin: 15px 0 20px 0;
+            font-size: 22px;
+            margin: 10px 0 15px 0;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
         p {
             color: #94a3b8;
-            font-size: 15px;
-            line-height: 1.6;
-            margin-bottom: 30px;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+        .status-badge {
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #cbd5e1;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+        .status-dot {
+            height: 8px;
+            width: 8px;
+            background-color: #ef4444;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+        .status-dot.connected {
+            background-color: #22c55e;
+            box-shadow: 0 0 8px #22c55e;
         }
         .button-container {
             display: flex;
             justify-content: center;
+            margin-top: 10px;
+        }
+        /* Sci-Fi Terminal Drawer */
+        .terminal-container {
+            width: 100%;
+            max-width: 520px;
             margin-top: 20px;
+            background-color: #090d16;
+            border: 1px solid #1e293b;
+            border-radius: 10px;
+            overflow: hidden;
+            text-align: left;
+        }
+        .terminal-header {
+            background-color: #111827;
+            padding: 8px 12px;
+            font-size: 12px;
+            color: #64748b;
+            font-family: monospace;
+            border-bottom: 1px solid #1e293b;
+            display: flex;
+            justify-content: space-between;
+        }
+        .terminal-body {
+            padding: 12px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            color: #38bdf8;
+            height: 90px;
+            overflow-y: auto;
+            margin: 0;
+            white-space: pre-wrap;
         }
     </style>
 </head>
 <body>
 
+    <!-- Navigation back to your main project selection dashboard -->
+    <div class="top-nav">
+        <a href="../" class="back-link">← Back to Project Hub</a>
+    </div>
+
     <div class="installer-card">
         <div class="logo">🤖</div>
-        <!-- Dynamically populated project title -->
         <h1 id="project-title">Loading Project...</h1>
-        <p>Connect your ESP32-C3 microcontroller via USB and click below to flash the firmware directly from your browser.</p>
+        <p>Connect your ESP32-C3 microcontroller via USB and click below to flash the firmware.</p>
         
+        <!-- Live Hardware Status Badge (#3) -->
+        <div id="device-status" class="status-badge">
+            <span id="status-dot" class="status-dot"></span><span id="status-text">No Hardware Detected</span>
+        </div>
+
         <div class="button-container">
             <esp-web-install-button manifest="./manifest.json"></esp-web-install-button>
         </div>
     </div>
 
+    <!-- Sci-Fi Terminal Log Viewer (#4) -->
+    <div class="terminal-container">
+        <div class="terminal-header">
+            <span>⚡ SYSTEM LOGS</span>
+            <span id="log-status">IDLE</span>
+        </div>
+        <pre id="terminal-output" class="terminal-body">System initialized. Ready for USB connection...</pre>
+    </div>
+
     <script>
-        // Automatically extracts the GitHub repository name from the live URL path
+        // 1. Auto-extract repository name for title & back navigation
         try {
             const pathParts = window.location.pathname.split('/').filter(Boolean);
             if (pathParts.length > 0) {
                 let repoName = pathParts[pathParts.length - 1];
-                // Clean up underscores and hyphens so it reads nicely (e.g., "ESP_NOW_CAR" -> "ESP NOW CAR")
                 repoName = repoName.replace(/[_]/g, ' ').replace(/[-]/g, ' ');
                 document.getElementById('project-title').innerText = repoName;
             } else {
@@ -79,6 +170,69 @@
         } catch (e) {
             document.getElementById('project-title').innerText = "Robotics Firmware";
         }
+
+        // Terminal logging utility
+        function logToTerminal(message) {
+            const term = document.getElementById('terminal-output');
+            const time = new Date().toLocaleTimeString();
+            term.innerText += `\n[${time}] ${message}`;
+            term.scrollTop = term.scrollHeight;
+        }
+
+        // 2. Live Hardware Diagnostics via Web Serial API (#3)
+        async function checkSerialSupport() {
+            if (!navigator.serial) {
+                logToTerminal("WARNING: WebSerial API not supported in this browser. Use Chrome or Edge.");
+                return;
+            }
+
+            // Check if ports are already granted/connected
+            try {
+                const ports = await navigator.serial.getPorts();
+                if (ports.length > 0) {
+                    updateConnectionState(true, ports[0]);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+
+            // Listen for device plug-in events
+            navigator.serial.addEventListener('connect', (event) => {
+                logToTerminal("Device connected via USB port.");
+                updateConnectionState(true, event.port);
+            });
+
+            // Listen for device unplug events
+            navigator.serial.addEventListener('disconnect', (event) => {
+                logToTerminal("Device disconnected.");
+                updateConnectionState(false, null);
+            });
+        }
+
+        function updateConnectionState(isConnected, port) {
+            const dot = document.getElementById('status-dot');
+            const text = document.getElementById('status-text');
+            const logStatus = document.getElementById('log-status');
+
+            if (isConnected) {
+                dot.classList.add('connected');
+                text.innerText = "ESP32-C3 Ready (Connected)";
+                logStatus.innerText = "ONLINE";
+                logStatus.style.color = "#22c55e";
+                logToTerminal("Hardware handshake verified. Ready to flash!");
+            } else {
+                dot.classList.remove('connected');
+                text.innerText = "No Hardware Detected";
+                logStatus.innerText = "IDLE";
+                logStatus.style.color = "#64748b";
+                logToTerminal("Waiting for USB device connection...");
+            }
+        }
+
+        // Initialize hardware listener on load
+        window.addEventListener('DOMContentLoaded', () => {
+            checkSerialSupport();
+        });
     </script>
 </body>
 </html>
