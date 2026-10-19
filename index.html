@@ -148,7 +148,7 @@
     </div>
 
     <script>
-        // Extract repo name for heading
+        // Extract repo name for heading dynamically from the URL path
         try {
             const pathParts = window.location.pathname.split('/').filter(Boolean);
             if (pathParts.length > 0) {
@@ -212,7 +212,7 @@
 
         // Run repeatedly until the shadow root is caught and styled
         const fontInterval = setInterval(forceButtonFont, 50);
-        setTimeout(() => clearInterval(fontInterval), 5000); // Clear after 5 seconds
+        setTimeout(() => clearInterval(fontInterval), 5000);
 
         window.addEventListener('DOMContentLoaded', () => {
             checkSerialSupport();
