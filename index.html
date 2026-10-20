@@ -190,12 +190,13 @@
 
     <script>
         // Set dynamic title
+        let repoName = 'ButtonBlinkTest';
         try {
             const pathParts = window.location.pathname.split('/').filter(Boolean);
             if (pathParts.length > 0) {
-                let repoName = pathParts[pathParts.length - 1];
-                repoName = repoName.replace(/[_]/g, ' ').replace(/[-]/g, ' ');
-                document.getElementById('project-title').innerText = repoName;
+                repoName = pathParts[pathParts.length - 1];
+                let formattedName = repoName.replace(/[_]/g, ' ').replace(/[-]/g, ' ');
+                document.getElementById('project-title').innerText = formattedName;
             } else {
                 document.getElementById('project-title').innerText = "ROBOTICS FIRMWARE";
             }
@@ -203,10 +204,11 @@
             document.getElementById('project-title').innerText = "ROBOTICS FIRMWARE";
         }
 
-        // Fetch and render README.md safely
+        // Fetch and render README.md directly from raw GitHub repository
         async function loadReadme() {
             try {
-                const response = await fetch('./README.md');
+                const rawUrl = `https://raw.githubusercontent.com/mustangwayrobots/${repoName}/main/README.md`;
+                const response = await fetch(rawUrl);
                 if (!response.ok) throw new Error('README not found');
                 const text = await response.text();
                 document.getElementById('readme-content').innerHTML = marked.parse(text);
@@ -233,43 +235,3 @@
         function updateConnectionState(isConnected) {
             const dot = document.getElementById('status-dot');
             const text = document.getElementById('status-text');
-
-            if (isConnected) {
-                dot.classList.add('connected');
-                text.innerText = "ESP32-C3 READY (CONNECTED)";
-            } else {
-                dot.classList.remove('connected');
-                text.innerText = "NO HARDWARE DETECTED";
-            }
-        }
-
-        // Font injector for ESP Web Tools button
-        const forceButtonFont = () => {
-            const installBtn = document.querySelector('esp-web-install-button');
-            if (installBtn && installBtn.shadowRoot) {
-                const shadow = installBtn.shadowRoot;
-                if (!shadow.querySelector('#orbitron-override')) {
-                    const style = document.createElement('style');
-                    style.id = 'orbitron-override';
-                    style.textContent = `
-                        button, slot, span, div, ::slotted(*) {
-                            font-family: 'Orbitron', sans-serif !important;
-                            font-weight: 700 !important;
-                            letter-spacing: 1px !important;
-                        }
-                    `;
-                    shadow.appendChild(style);
-                }
-            }
-        };
-
-        const fontInterval = setInterval(forceButtonFont, 50);
-        setTimeout(() => clearInterval(fontInterval), 5000);
-
-        window.addEventListener('DOMContentLoaded', () => {
-            checkSerialSupport();
-            loadReadme();
-        });
-    </script>
-</body>
-</html>
