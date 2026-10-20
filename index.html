@@ -12,9 +12,6 @@
     <!-- Load official ESP Web Tools script -->
     <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
     
-    <!-- Load Marked.js for Markdown parsing -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    
     <style>
         * {
             font-family: 'Orbitron', sans-serif !important;
@@ -130,35 +127,6 @@
             justify-content: center;
             margin-top: 10px;
         }
-
-        .docs-card h3 {
-            color: #38bdf8;
-            margin-top: 0;
-            font-size: 15px;
-            letter-spacing: 1.5px;
-            border-bottom: 1px solid #1e293b;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-        }
-
-        #readme-content {
-            color: #cbd5e1;
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        #readme-content h1, #readme-content h2, #readme-content h3 {
-            color: #ffffff;
-            font-size: 14px;
-            margin-top: 15px;
-        }
-
-        #readme-content code {
-            background-color: #1e293b;
-            padding: 2px 6px;
-            border-radius: 4px;
-            color: #38bdf8;
-        }
     </style>
 </head>
 <body>
@@ -182,39 +150,19 @@
         </div>
     </div>
 
-    <!-- Project Documentation Card -->
-    <div class="card docs-card">
-        <h3>PROJECT DOCUMENTATION</h3>
-        <div id="readme-content">Loading project instructions...</div>
-    </div>
-
     <script>
-        // Set dynamic title
-        let repoName = 'ButtonBlinkTest';
+        // Extract repo name for heading dynamically from the URL path
         try {
             const pathParts = window.location.pathname.split('/').filter(Boolean);
             if (pathParts.length > 0) {
-                repoName = pathParts[pathParts.length - 1];
-                let formattedName = repoName.replace(/[_]/g, ' ').replace(/[-]/g, ' ');
-                document.getElementById('project-title').innerText = formattedName;
+                let repoName = pathParts[pathParts.length - 1];
+                repoName = repoName.replace(/[_]/g, ' ').replace(/[-]/g, ' ');
+                document.getElementById('project-title').innerText = repoName;
             } else {
                 document.getElementById('project-title').innerText = "ROBOTICS FIRMWARE";
             }
         } catch (e) {
             document.getElementById('project-title').innerText = "ROBOTICS FIRMWARE";
-        }
-
-        // Fetch and render README.md directly from raw GitHub repository
-        async function loadReadme() {
-            try {
-                const rawUrl = `https://raw.githubusercontent.com/mustangwayrobots/${repoName}/main/README.md`;
-                const response = await fetch(rawUrl);
-                if (!response.ok) throw new Error('README not found');
-                const text = await response.text();
-                document.getElementById('readme-content').innerHTML = marked.parse(text);
-            } catch (err) {
-                document.getElementById('readme-content').innerHTML = "No documentation (README.md) found for this project yet.";
-            }
         }
 
         // Web Serial API hardware listener
@@ -235,3 +183,42 @@
         function updateConnectionState(isConnected) {
             const dot = document.getElementById('status-dot');
             const text = document.getElementById('status-text');
+
+            if (isConnected) {
+                dot.classList.add('connected');
+                text.innerText = "ESP32-C3 READY (CONNECTED)";
+            } else {
+                dot.classList.remove('connected');
+                text.innerText = "NO HARDWARE DETECTED";
+            }
+        }
+
+        // Aggressive shadow DOM injector for the ESP Web Tools button
+        const forceButtonFont = () => {
+            const installBtn = document.querySelector('esp-web-install-button');
+            if (installBtn && installBtn.shadowRoot) {
+                const shadow = installBtn.shadowRoot;
+                if (!shadow.querySelector('#orbitron-override')) {
+                    const style = document.createElement('style');
+                    style.id = 'orbitron-override';
+                    style.textContent = `
+                        button, slot, span, div, ::slotted(*) {
+                            font-family: 'Orbitron', sans-serif !important;
+                            font-weight: 700 !important;
+                            letter-spacing: 1px !important;
+                        }
+                    `;
+                    shadow.appendChild(style);
+                }
+            }
+        };
+
+        const fontInterval = setInterval(forceButtonFont, 50);
+        setTimeout(() => clearInterval(fontInterval), 5000);
+
+        window.addEventListener('DOMContentLoaded', () => {
+            checkSerialSupport();
+        });
+    </script>
+</body>
+</html>
