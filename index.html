@@ -13,7 +13,6 @@
     <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
     
     <style>
-        /* Global font base */
         * {
             font-family: 'Orbitron', sans-serif !important;
             font-style: normal !important;
@@ -54,7 +53,7 @@
             opacity: 0.8;
         }
 
-        .installer-card {
+        .card {
             background-color: #0f172a;
             width: 100%;
             max-width: 520px;
@@ -62,8 +61,12 @@
             border-radius: 16px;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
             border: 2px solid #1e293b;
-            text-align: center;
             box-sizing: border-box;
+            margin-bottom: 20px;
+        }
+
+        .installer-card {
+            text-align: center;
         }
 
         .logo {
@@ -71,7 +74,6 @@
             margin-bottom: 10px;
         }
 
-        /* Explicit, heavy Orbitron styling for the repository title */
         h1 {
             font-family: 'Orbitron', sans-serif !important;
             font-weight: 900 !important;
@@ -125,6 +127,39 @@
             justify-content: center;
             margin-top: 10px;
         }
+
+        .docs-card {
+            text-align: center;
+        }
+
+        .docs-card h3 {
+            color: #38bdf8;
+            margin-top: 0;
+            font-size: 15px;
+            letter-spacing: 1.5px;
+            margin-bottom: 15px;
+        }
+
+        .docs-btn {
+            display: inline-block;
+            background-color: #1e293b;
+            color: #38bdf8;
+            border: 1px solid #334155;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            transition: all 0.2s ease;
+            margin-top: 5px;
+        }
+
+        .docs-btn:hover {
+            background-color: #334155;
+            color: #ffffff;
+            border-color: #38bdf8;
+        }
     </style>
 </head>
 <body>
@@ -133,7 +168,8 @@
         <a href="/flash/" class="back-link">← BACK TO PROJECT HUB</a>
     </div>
 
-    <div class="installer-card">
+    <!-- Installer Card -->
+    <div class="card installer-card">
         <div class="logo">🤖</div>
         <h1 id="project-title">LOADING PROJECT...</h1>
         <p>Connect your ESP32-C3 microcontroller via USB and click below to flash the firmware directly from your browser.</p>
@@ -147,16 +183,27 @@
         </div>
     </div>
 
+    <!-- Project Documentation Link Card -->
+    <div class="card docs-card">
+        <h3>NEED WIRING OR SETUP HELP?</h3>
+        <p style="margin-bottom: 15px; font-size: 13px;">View the complete project guide, schematics, and instructions in the repository README.</p>
+        <a id="docs-link" href="#" target="_blank" class="docs-btn">📖 VIEW PROJECT README</a>
+    </div>
+
     <script>
-        // Extract repo name for heading dynamically from the URL path
+        // Extract repo name and build dynamic links
         try {
             const pathParts = window.location.pathname.split('/').filter(Boolean);
             if (pathParts.length > 0) {
                 let repoName = pathParts[pathParts.length - 1];
-                repoName = repoName.replace(/[_]/g, ' ').replace(/[-]/g, ' ');
-                document.getElementById('project-title').innerText = repoName;
+                let formattedName = repoName.replace(/[_]/g, ' ').replace(/[-]/g, ' ');
+                document.getElementById('project-title').innerText = formattedName;
+                
+                // Point the documentation button directly to the repo page
+                document.getElementById('docs-link').href = `https://github.com/mustangwayrobots/${repoName}`;
             } else {
                 document.getElementById('project-title').innerText = "ROBOTICS FIRMWARE";
+                document.getElementById('docs-link').href = "https://github.com/mustangwayrobots";
             }
         } catch (e) {
             document.getElementById('project-title').innerText = "ROBOTICS FIRMWARE";
@@ -210,7 +257,6 @@
             }
         };
 
-        // Run repeatedly until the shadow root is caught and styled
         const fontInterval = setInterval(forceButtonFont, 50);
         setTimeout(() => clearInterval(fontInterval), 5000);
 
