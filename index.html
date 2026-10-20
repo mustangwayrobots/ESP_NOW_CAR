@@ -232,4 +232,9 @@
         const fontInterval = setInterval(forceButtonFont, 50);
         setTimeout(() => clearInterval(fontInterval), 5000);
 
-        window.addEventListener('DOMContentLoaded
+        window.addEventListener('DOMContentLoaded', () => {
+            checkSerialSupport();
+        });
+    </script>
+</body>
+</html>
