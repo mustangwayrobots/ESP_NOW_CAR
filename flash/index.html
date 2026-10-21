@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Firmware Flasher Portal</title>
+  
+  <!-- Orbitron & Inter Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-dark: #050b14;
+      --card-bg: #0c1524;
+      --accent-blue: #38bdf8;
+      --accent-hover: #0284c7;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-color: #1e293b;
+      --success-green: #22c55e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    .nav-back {
+      width: 100%;
+      max-width: 800px;
+      margin-bottom: 1.5rem;
+    }
+
+    .nav-back a {
+      color: var(--accent-blue);
+      text-decoration: none;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      transition: color 0.2s ease;
+    }
+
+    .nav-back a:hover {
+      color: var(--accent-hover);
+      text-decoration: underline;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 800px;
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 2.5rem 2rem;
+      text-align: center;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+      margin-bottom: 2rem;
+    }
+
+    .robot-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--accent-blue);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+      text-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+    }
+
+    p.description {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      line-height: 1.6;
+      margin-bottom: 2rem;
+    }
+
+    /* Connection Status Indicator */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background-color: rgba(30, 41, 59, 0.7);
+      border: 1px solid var(--border-color);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--text-muted);
+      border-radius: 50%;
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .status-badge.connected {
+      border-color: rgba(34, 197, 94, 0.4);
+      color: var(--text-main);
+    }
+
+    .status-badge.connected .status-dot {
+      background-color: var(--success-green);
+      box-shadow: 0 0 8px var(--success-green);
+    }
+
+    /* ESP Web Tools Button Styling Injection */
+    esp-web-install-button {
+      display: block;
+      margin: 0 auto;
+    }
+
+    esp-web-install-button::part(button) {
+      background-color: var(--accent-blue);
+      color: var(--bg-dark);
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 800;
+      padding: 0.85rem 2rem;
+      border-radius: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(56, 189, 248, 0.4);
+      transition: background-color 0.2s ease, transform 0.1s ease;
+    }
+
+    esp-web-install-button::part(button):hover {
+      background-color: var(--accent-hover);
+      color: #ffffff;
+      transform: translateY(-2px);
+    }
+
+    footer {
+      margin-top: auto;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+  </style>
+
+  <!-- ESP Web Tools Installer Module -->
+  <script
+    type="module"
+    src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"
+  ></script>
+</head>
+<body>
+
+  <div class="nav-back">
+    <a href="../" id="back-link">&larr; Back to Project Docs</a>
+  </div>
+
+  <main class="container">
+    <div class="card">
+      <div class="robot-icon">🤖</div>
+      <h1 id="page-title">Firmware Flasher</h1>
+      <p class="description">
+        Connect your microcontroller via USB and click below to flash the compiled firmware directly from your browser.
+      </p>
+
+      <!-- Connection Status Badge -->
+      <div id="serial-status" class="status-badge">
+        <div class="status-dot"></div>
+        <span id="status-text">NO DEVICE CONNECTED</span>
+      </div>
+
+      <!-- ESP Web Tools Flasher Component -->
+      <esp-web-install-button manifest="../manifest.json">
+        <button slot="activate">Connect & Flash</button>
+      </esp-web-install-button>
+    </div>
+  </main>
+
+  <footer>
+    &copy; Mustang Way Robots • Automated Cloud Compilation System
+  </footer>
+
+  <script>
+    // Dynamically update headings and back link based on repository name in path
+    const pathSegments = window.location.pathname.split('/').filter(Boolean);
+    // e.g., if path is /ESP_NOW_CAR/flash/, repo name is the segment before 'flash'
+    const flashIndex = pathSegments.indexOf('flash');
+    if (flashIndex > 0) {
+      const repoName = pathSegments[flashIndex - 1];
+      const cleanTitle = repoName.replace(/[-_]/g, ' ');
+      document.getElementById('page-title').textContent = cleanTitle;
+      document.title = `${cleanTitle} | Firmware Flasher`;
+    }
+
+    // Live Web Serial API Connection Listener for Hardware Badge
+    const statusBadge = document.getElementById('serial-status');
+    const statusText = document.getElementById('status-text');
+
+    if ('serial' in navigator) {
+      navigator.serial.addEventListener('connect', (event) => {
+        updateConnectionState(true);
+      });
+
+      navigator.serial.addEventListener('disconnect', (event) => {
+        updateConnectionState(false);
+      });
+
+      // Check current active ports on load
+      navigator.serial.getPorts().ports?.then(ports => {
+        if (ports.length > 0) updateConnectionState(true);
+      });
+    }
+
+    function updateConnectionState(isConnected) {
+      if (isConnected) {
+        statusBadge.classList.add('connected');
+        statusText.textContent = 'MICROCONTROLLER READY (CONNECTED)';
+      } else {
+        statusBadge.classList.remove('connected');
+        statusText.textContent = 'NO DEVICE CONNECTED';
+      }
+    }
+  </script>
+</body>
+</html>
