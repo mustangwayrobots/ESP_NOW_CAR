@@ -211,7 +211,6 @@
 <body>
 
     <div class="top-nav">
-        <!-- Back link pointing to the root organization portal -->
         <a href="https://mustangwayrobots.github.io/" class="back-link">← BACK TO ORGANIZATION PORTAL</a>
     </div>
 
@@ -237,7 +236,7 @@
     </div>
 
     <script>
-        // Extract repo name dynamically from the pathname (e.g., /ESP_NOW_CAR/flash/ -> ESP_NOW_CAR)
+        // Extract repo name dynamically from pathname
         try {
             const pathParts = window.location.pathname.split('/').filter(Boolean);
             const flashIndex = pathParts.indexOf('flash');
