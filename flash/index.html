@@ -146,7 +146,7 @@
             color: #cbd5e1;
             font-size: 13px;
             line-height: 1.7;
-            font-family: Arial, sans-serif !important; /* Standard font for readable docs */
+            font-family: Arial, sans-serif !important;
         }
 
         #readme-content h1, #readme-content h2, #readme-content h3 {
@@ -198,12 +198,20 @@
             color: #38bdf8;
             text-decoration: underline;
         }
+
+        /* Image containment scaling for rendered README */
+        #readme-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
 
     <div class="top-nav">
-        <a href="/flash/" class="back-link">← BACK TO PROJECT HUB</a>
+        <a href="https://mustangwayrobots.github.io/" class="back-link">← BACK TO ORGANIZATION PORTAL</a>
     </div>
 
     <!-- Installer Card -->
@@ -228,15 +236,17 @@
     </div>
 
     <script>
-        // Extract repo name and dynamically fetch the project's README.md from GitHub raw content
+        // Extract repo name dynamically from pathname
         try {
             const pathParts = window.location.pathname.split('/').filter(Boolean);
-            if (pathParts.length > 0) {
-                let repoName = pathParts[pathParts.length - 1];
+            const flashIndex = pathParts.indexOf('flash');
+            
+            if (flashIndex > 0) {
+                let repoName = pathParts[flashIndex - 1];
                 let formattedName = repoName.replace(/[_]/g, ' ').replace(/[-]/g, ' ');
                 document.getElementById('project-title').innerText = formattedName;
                 
-                // Fetch README.md directly from GitHub raw URL for this repo
+                // Fetch README.md directly from GitHub raw URL for this repo's main branch
                 const readmeUrl = `https://raw.githubusercontent.com/mustangwayrobots/${repoName}/main/README.md`;
                 
                 fetch(readmeUrl)
