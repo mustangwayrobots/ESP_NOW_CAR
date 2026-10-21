@@ -20,12 +20,12 @@ An open-source, custom-designed remote-controlled (RC) car powered by the high-s
 ### Assembled Chassis
 The robot features a rigid 3D-printed chassis housing the custom mainboard, dual N20 gear motors, and battery compartment.
 
-<img src="https://raw.githubusercontent.com/mustangwayrobots/ESP_NOW_CAR/main/images/PXL_20261020_210856805.jpg" width="450" alt="Assembled Chassis">
+<img src="https://raw.githubusercontent.com/mustangwayrobots/ESP_NOW_CAR/main/images/PXL_20261020_210856805.jpg" style="max-width: 100%; height: auto; border-radius: 8px;" alt="Assembled Chassis">
 
 ### Custom N20 Motor Backplates
 Each N20 gear motor is equipped with a custom backplate and secure connector interface for reliable wiring and easy maintenance.
 
-<img src="https://raw.githubusercontent.com/mustangwayrobots/ESP_NOW_CAR/main/images/PXL_20261020_210916029.MACRO_FOCUS.jpg" width="450" alt="N20 Motor Backplate">
+<img src="https://raw.githubusercontent.com/mustangwayrobots/ESP_NOW_CAR/main/images/PXL_20261020_210916029.MACRO_FOCUS.jpg" style="max-width: 100%; height: auto; border-radius: 8px;" alt="N20 Motor Backplate">
 
 ---
 
@@ -34,12 +34,12 @@ Each N20 gear motor is equipped with a custom backplate and secure connector int
 ### Circuit Schematic (Schematic_V2)
 The system integrates the ESP32-C3 SuperMini, motor drivers, DC-DC boost module, battery charging circuit, battery sense voltage divider, and binding button.
 
-<img src="https://raw.githubusercontent.com/mustangwayrobots/ESP_NOW_CAR/main/images/schematic.png" width="450" alt="Schematic V2">
+<img src="https://raw.githubusercontent.com/mustangwayrobots/ESP_NOW_CAR/main/images/schematic.png" style="max-width: 100%; height: auto; border-radius: 8px;" alt="Schematic V2">
 
 ### PCB Layout & Dimensions
 Designed in EasyEDA Pro, the custom double-sided PCB measures **86.00mm x 42.00mm** with standardized mounting holes for secure attachment to the 3D-printed chassis.
 
-<img src="https://raw.githubusercontent.com/mustangwayrobots/ESP_NOW_CAR/main/images/pcb-layout.png" width="450" alt="PCB Layout">
+<img src="https://raw.githubusercontent.com/mustangwayrobots/ESP_NOW_CAR/main/images/pcb-layout.png" style="max-width: 100%; height: auto; border-radius: 8px;" alt="PCB Layout">
 
 ---
 
