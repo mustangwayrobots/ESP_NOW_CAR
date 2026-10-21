@@ -1,97 +1,74 @@
-# ESP NOW Car
+# ESP NOW CAR
 
-An open-source, custom-designed remote-controlled (RC) car powered by the **ESP-NOW** wireless protocol. Created by **Mustang Way Robots (Downers Grove South High School)**, this project combines a custom mainboard PCB, modular off-the-shelf electronics, custom motor backplate PCBs, and 3D-printed chassis components into a compact, easily assembleable robotics platform.
-
----
-
-## Features
-
-- **Protocol:** High-speed, low-latency control via Espressif’s **ESP-NOW** protocol.
-- **Microcontroller:** ESP32-C3 Super Mini.
-- **Motor Control:** DRV8833 dual H-bridge motor driver controlling two N20 micro gear motors.
-- **Modular Power Management:**
-  - 1S LiPo battery powered.
-  - Onboard TP4056 micro/USB-C charging module.
-  - DC-DC Step-Up (Boost) Converter to regulate system voltage.
-  - Onboard battery voltage sense divider for monitoring state of charge.
-- **Modular Expansion & User Inputs:**
-  - Integrated tactile **Binding Button** for quick remote pairing.
-  - Dedicated 3-pin Servo output header (5V, GND, Signal).
-  - Main power slide switch.
-- **Solderless Motor Connection System:** Custom backplate PCBs attached to N20 motors feature right-angle female pin headers. The motors push directly onto male pin headers on the chassis/PCB, securing the electrical connection while the PCB screws onto the 3D-printed body to lock everything in place.
+An open-source, custom-designed remote-controlled (RC) car powered by the high-speed, low-latency **ESP-NOW** wireless protocol. Developed for robotics education, this project combines a custom mainboard PCB, modular off-the-shelf electronics, custom motor backplates, and 3D-printed chassis components into a compact, easily assemblable robotics platform.
 
 ---
 
-## Component Hardware Specifications
+## 🚀 Features
 
-| Component | Description / Specification |
-| :--- | :--- |
-| **Microcontroller** | ESP32-C3 Super Mini |
-| **Motor Driver** | DRV8833 Dual H-Bridge Module |
-| **Battery Charger** | TP4056 1S LiPo Charging Module |
-| **Power Converter** | MT3608 Mini DC-DC Boost Step-Up Converter |
-| **Power Source** | 1S LiPo Battery (JST / SH-PH2.0 connector) |
-| **Motors** | 2x N20 Micro Gear Motors with custom PCB backplates |
-| **PCB Dimensions** | 86.00 mm × 42.00 mm (Mounting hole spacing: 79.00 mm × 35.00 mm) |
+* **Wireless Protocol:** High-speed, low-latency control via Espressif's ESP-NOW protocol.
+* **Microcontroller:** ESP32-C3 Super Mini (compact, cost-effective, and Wi-Fi/BLE capable).
+* **Motor Control:** Dual H-bridge motor driver configuration driving N20 micro gear motors.
+* **Power Management:** Onboard TP4056 charging module with lithium battery support and a DC-DC step-up boost module.
+* **Telemetry & Sensing:** Integrated battery voltage divider for real-time voltage monitoring and binding button support.
+* **Browser-Based Flashing:** Fully compatible with web-based firmware flashers for instant classroom deployment.
 
 ---
 
-## Schematic & Pinout Overview
+## 📷 Hardware & Assembly
 
-### ESP32-C3 Pin Connections
+### Assembled Chassis
+The robot features a rigid 3D-printed chassis housing the custom mainboard, dual N20 gear motors, and battery compartment.
 
-| ESP32-C3 Pin | Function / Destination |
-| :--- | :--- |
-| **GPIO5** | Binding Button (`Binding`) |
-| **GPIO4** | Servo Signal Output (`Servo Pin`) |
-| **GPIO3** | Battery Voltage Sensor (`VBAT_ADC`) |
-| **GPIO10** | Motor Driver IN1 (`A1-IN`) |
-| **GPIO20 / RX** | Motor Driver IN2 (`A2-IN`) |
-| **GPIO21 / TX** | Motor Driver IN3 (`B1-IN`) |
-| **GPIO10 / IO1**| Motor Driver IN4 (`B2-IN`) |
-| **5V / 3V3 / GND**| System Power Rails |
+![Assembled Chassis](images/PXL_20261020_210856805.jpg)
+
+### Custom N20 Motor Backplates
+Each N20 gear motor is equipped with a custom backplate and secure connector interface for reliable wiring and easy maintenance.
+
+![N20 Motor Backplate](images/PXL_20261020_210916029.MACRO_FOCUS.jpg)
 
 ---
 
-## Firmware & Web Flasher
+## ⚡ Schematics & PCB Design
 
-You can flash the latest firmware directly to your ESP32-C3 using a Web Serial supported browser (Chrome, Edge, Opera) without setting up a local IDE environment:
+### Circuit Schematic (Schematic_V2)
+The system integrates the ESP32-C3 SuperMini, motor drivers, DC-DC boost module, battery charging circuit, battery sense voltage divider, and binding button.
 
-👉 **[Flash Firmware via Mustang Way Robots Web Tool](https://mustangwayrobots.github.io/flash/)**
+![Schematic V2](images/SCH_Schematic_V2_1-P2_2026-10-20.jpg)
 
-### Building from Source
-If building in Arduino IDE or PlatformIO:
-1. Ensure the Espressif ESP32 board support packages are installed.
-2. Select **ESP32C3 Dev Module** or **ESP32-C3 Super Mini** as your target board.
-3. Include the necessary `WiFi` and `esp_now` libraries included with the ESP32 core.
+### PCB Layout & Dimensions
+Designed in EasyEDA Pro, the custom double-sided PCB measures **86.00mm x 42.00mm** with standardized mounting holes for secure attachment to the 3D-printed chassis.
 
----
-
-## Mechanical & Assembly Guide
-
-1. **Motor Preparation:** 
-   - Solder the custom N20 backplate PCB to the terminals of each N20 gear motor.
-   - Solder right-angle female header sockets onto the backplate PCBs.
-2. **Chassis Assembly:**
-   - Slide the N20 motors into the designated slots inside the 3D-printed chassis body.
-3. **PCB Installation:**
-   - Align the mainboard male headers with the female connectors on the motor backplates.
-   - Press the mainboard down into position and fasten it to the 3D-printed chassis using four M3 screws through the mounting holes.
+![PCB Layout](images/2026-10-20_15_32_07-Untitled_1_LibreOffice_Writer.png)
 
 ---
 
-## Repository Structure
+## 📋 Bill of Materials (BOM)
 
-```text
-├── 3D_Models/       # STL files for chassis and motor housings
-├── Hardware/        # Schematic files, Gerber files, and EasyEDA project files
-├── Firmware/        # Source code for the ESP32-C3 vehicle
-└── README.md        # Project documentation
-```
+| Component | Description | Qty |
+| :--- | :--- | :--- |
+| **Microcontroller** | ESP32-C3 Super Mini | 1 |
+| **Motor Drivers** | H-Bridge Motor Driver Module (DRV8833 / TB6612 compatible) | 1 Set |
+| **Motors** | N20 Micro Gear Motors with custom backplates | 2 |
+| **Power Management** | TP4056 Li-Ion Charging Module (with protection) | 1 |
+| **Voltage Regulation** | Mini DC-DC Step-Up (Boost) Converter Module | 1 |
+| **Switch & Inputs** | Slide switch (Power) & Tactile switch (Binding) | 1 Each |
+| **Chassis** | Custom 3D-printed frame and wheels (PETG/TPU) | 1 Set |
 
 ---
 
-## License & Credits
+## 🔌 Pinout & Wiring Reference
 
-Designed by **Mustang Way Robots** — Downers Grove South High School Robotics Club.  
-Open-source hardware and software released under the [MIT License](LICENSE).
+* **ESP32-C3 GPIO Bindings:**
+  * **Binding Button:** Connected to GPIO via tactile switch (`SW3`).
+  * **Motor Control:** Driven through dedicated input channels (`A1-IN`, `A2-IN`, `B1-IN`, `B2-IN`).
+  * **Battery Sense:** Monitored via an analog voltage divider (`R2`/`R3` 10k resistors) mapped to `VBAT_ADC`.
+  * **Servo / Aux:** Standard 3-pin header for optional accessories or steering mechanism.
+
+---
+
+## 💻 Firmware Installation & Flashing
+
+1. Connect your ESP32-C3 board to your computer via USB.
+2. Open the browser-based [Firmware Flasher Portal](https://mustangwayrobots.github.io/ESP_NOW_CAR/).
+3. Click **Connect**, select the correct serial port, and flash the compiled binary directly in seconds.
