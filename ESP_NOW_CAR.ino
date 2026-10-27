@@ -18,13 +18,13 @@ const bool DEBUG_MODE = true;
 #define WIFI_CHANNEL 1
 #define STATUS_LED   8   
 
-#define A1Pin     4      
-#define A2Pin     2      
-#define B1Pin     1      
-#define B2Pin     0      
-#define BindPin   6      
-#define WeaponPin 7      
-#define BATTERY_ADC_PIN 5 
+#define A1Pin     1      
+#define A2Pin     0      
+#define B1Pin     20      
+#define B2Pin     10     
+#define BindPin   5      
+#define WeaponPin 4      
+#define BATTERY_ADC_PIN 3 
 
 bool NormalMode             = true;
 bool TXConnectionStatus     = false;
