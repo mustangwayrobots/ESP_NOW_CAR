@@ -1,33 +1,44 @@
 /**
- *
  * ==============================================================================
- * setupNormalMode.ino (Car Receiver - Complete Dual-Interface Layout)
- * Aligned to accept legacy ESP8266 AP packets and future ESP32-C3 STA packets.
- * Low-Frequency Drive Matrix: Overrides onboard LED filters for custom PCBs.
+ * setupNormalMode.ino (Car Receiver - Crash-Proof NVS, Motors & Native Servo)
  * ==============================================================================
  */
 void setupNormalMode(){
   if (DEBUG_MODE) Serial.println("[INIT-NORM] Entering drive configurations setup sequence...");
   
-  // Force All PCB Tracks explicitly to Output Buffers first to maximize drive current
   pinMode(A1Pin, OUTPUT);
   pinMode(A2Pin, OUTPUT);
   pinMode(B1Pin, OUTPUT);
   pinMode(B2Pin, OUTPUT);
+  pinMode(WeaponPin, OUTPUT);
 
-  // Force AP_STA Dual Interface Mode for generational controller compatibility
-  WiFi.mode(WIFI_AP_STA);
+  digitalWrite(A1Pin, LOW);
+  digitalWrite(A2Pin, LOW);
+  digitalWrite(B1Pin, LOW);
+  digitalWrite(B2Pin, LOW);
+  digitalWrite(WeaponPin, LOW);
+
+  WiFi.mode(WIFI_STA);
 
   uint8_t remoteMac[6];
   if (!readStoredMac(remoteMac)) {
-    Serial.println("[WARN] Storage space empty! Run pairing long-press routine.");
+    Serial.println("[WARN] NVS Storage empty or invalid! Switching to Binding Mode...");
+    NormalMode = false;
+    setupBindingMode();
+    return;
+  }
+
+  if (remoteMac[0] == 0 && remoteMac[1] == 0 && remoteMac[2] == 0 && 
+      remoteMac[3] == 0 && remoteMac[4] == 0 && remoteMac[5] == 0) {
+    Serial.println("[WARN] Stored MAC is null/zeros! Switching to Binding Mode...");
+    NormalMode = false;
+    setupBindingMode();
+    return;
   }
   
-  // --- AUTOMATIC DYNAMIC CHANNEL CALCULATION ---
   uint8_t calculatedChannel = 1;
   uint8_t macRemainder = remoteMac[5] % 3; 
-  if (macRemainder == 0)      calculatedChannel = 1;
-  else if (macRemainder == 1) calculatedChannel = 6;
+  if (macRemainder == 1)      calculatedChannel = 6;
   else if (macRemainder == 2) calculatedChannel = 11;
   
   Serial.printf("[INIT-NORM] Loaded Whitelisted Controller MAC: %02X:%02X:%02X:%02X:%02X:%02X\n",
@@ -41,30 +52,17 @@ void setupNormalMode(){
 
   esp_wifi_set_channel(calculatedChannel, WIFI_SECOND_CHAN_NONE);
  
-  // --- REGISTER PEER: INTERFACE 1 (For Future ESP32-C3 STA Controllers) ---
-  esp_now_peer_info_t peerInfoSTA;
-  memset(&peerInfoSTA, 0, sizeof(peerInfoSTA));
-  memcpy(peerInfoSTA.peer_addr, remoteMac, 6);
-  peerInfoSTA.channel = calculatedChannel; 
-  peerInfoSTA.ifidx   = WIFI_IF_STA;       
-  peerInfoSTA.encrypt = false;
+  esp_now_peer_info_t peerInfo = {};
+  memset(&peerInfo, 0, sizeof(peerInfo));
+  memcpy(peerInfo.peer_addr, remoteMac, 6);
+  peerInfo.channel = calculatedChannel; 
+  peerInfo.ifidx   = WIFI_IF_STA;       
+  peerInfo.encrypt = false;
   
-  if (esp_now_add_peer(&peerInfoSTA) != ESP_OK) {
-    Serial.println("[WARN] Station interface pipeline profile registration skipped or active.");
-  }
-
-  // --- REGISTER PEER: INTERFACE 2 (For Legacy ESP8266 AP Controllers) ---
-  esp_now_peer_info_t peerInfoAP;
-  memset(&peerInfoAP, 0, sizeof(peerInfoAP));
-  memcpy(peerInfoAP.peer_addr, remoteMac, 6);
-  peerInfoAP.channel = calculatedChannel;
-  peerInfoAP.ifidx   = WIFI_IF_AP;         
-  peerInfoAP.encrypt = false;
-  
-  if (esp_now_add_peer(&peerInfoAP) != ESP_OK) {
-    Serial.println("[ERR] Failed to configure exclusive unicast communication pipe over AP interface.");
+  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+    Serial.println("[WARN] Failed to add unicast peer or peer already exists.");
   } else {
-    if (DEBUG_MODE) Serial.println("[INIT-NORM] Dual-interface hardware communication pipes established.");
+    if (DEBUG_MODE) Serial.println("[INIT-NORM] Exclusive STA communication pipe established.");
   }
 
   esp_now_register_recv_cb([](const esp_now_recv_info_t *recv_info, const uint8_t *data, int len) {
@@ -75,16 +73,17 @@ void setupNormalMode(){
     }
   });
 
-  // --- HARDWARE PWM LOW-FREQUENCY BRIDGES ---
-  // Dropping to 50Hz overrides the onboard hardware filter constraints on GPIO 2, 
-  // letting the raw logic power flow directly into your DRV8833 chip traces!
-  ledcAttach(A1Pin, 5000, 8);  // Motor A Forward (GPIO 4)
-  ledcAttach(A2Pin, 5000, 8);  // Motor A Reverse (GPIO 2)
-  ledcAttach(B1Pin, 5000, 8);  // Motor B Forward (GPIO 1)
-  ledcAttach(B2Pin, 5000, 8);  // Motor B Reverse (GPIO 0)
+  // --- HARDWARE PWM MOTOR BRIDGES (5kHz, 8-bit) ---
+  ledcAttach(A1Pin, 5000, 8);  
+  ledcAttach(A2Pin, 5000, 8);  
+  ledcAttach(B1Pin, 5000, 8);  
+  ledcAttach(B2Pin, 5000, 8);  
+
+  // --- NATIVE SERVO FLIPPER SETUP (50Hz, 16-bit) ---
+  // Completely bypasses ESP32Servo library to prevent LEDC timer collisions with Motor B
+  ledcAttach(WeaponPin, 50, 16);
+  uint32_t initialDuty = map(0, 0, 180, 3276, 6553); // Default rest position (0 degrees)
+  ledcWrite(WeaponPin, initialDuty);
   
-  weapon.attach(WeaponPin);
-  weapon.write(0); 
   if (DEBUG_MODE) Serial.println("[INIT-NORM] Normal drive environment initialized successfully.");
 }
-

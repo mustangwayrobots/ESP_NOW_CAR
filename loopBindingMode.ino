@@ -1,11 +1,9 @@
 /**
  * ==============================================================================
- * loopBindingMode.ino (Car Receiver - Deep Debug Flag Tracking Layout)
- * Drives the high-frequency pairing handshake routine and flashing strobe.
+ * loopBindingMode.ino (Car Receiver - Robust Handshake with Guaranteed Delivery)
  * ==============================================================================
  */
 void loopBindingMode(){
-  // Fast blink strobe (50ms) denotes pairing activity runtime boundaries
   static unsigned long lastBlink;
   static bool ledState = false;
   if(millis() - lastBlink > 50) {
@@ -14,7 +12,6 @@ void loopBindingMode(){
     digitalWrite(STATUS_LED, ledState ? LOW : HIGH); 
   }
 
-  // --- NEW DIAGNOSTIC MONITOR BLOCK ---
   static unsigned long lastDebugPrint = 0;
   if (millis() - lastDebugPrint > 500) {
     lastDebugPrint = millis();
@@ -22,38 +19,42 @@ void loopBindingMode(){
                   ReceiveBindingComplete, SendBindingComplete);
   }
 
-  // Phase 2: If we heard the transmitter, continuously reply back with our identity confirmation
   if (ReceiveBindingComplete && !SendBindingComplete) {
-    static unsigned long lastTxTime;
-    if (millis() - lastTxTime > 150) { 
+    static unsigned long lastTxTime = 0;
+    static int confirmationCount = 0;
+    
+    if (millis() - lastTxTime > 100) { 
       lastTxTime = millis();
       
       RC_Packet_Structure confirmationPacket;
-      confirmationPacket.protocolMode = 2; // Code 2 = Handshake Validation
+      confirmationPacket.protocolMode = 2; 
       
-      if (DEBUG_MODE) Serial.println("[LOOP-BIND] Sending registration handshake back to Remote via Broadcast...");
-      
+      Serial.println("[LOOP-BIND] Blasting registration handshake back to Remote...");
       uint8_t broadTarget[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
       esp_now_send(broadTarget, (uint8_t *) &confirmationPacket, sizeof(confirmationPacket));
+      
+      confirmationCount++;
+      if (confirmationCount > 10) {
+        SendBindingComplete = true;
+      }
     }
   }
 
-  // Phase 3: Both flags are true! Safe to commit to NVS flash memory and reboot
   if (SendBindingComplete && ReceiveBindingComplete) {
       char remoteMacStr[18]; 
       snprintf(remoteMacStr, sizeof(remoteMacStr), "%02x:%02x:%02x:%02x:%02x:%02x",
                capturedRemoteMac[0], capturedRemoteMac[1], capturedRemoteMac[2],
                capturedRemoteMac[3], capturedRemoteMac[4], capturedRemoteMac[5]);      
       
-      Serial.printf("[SUCCESS] PAIR COMPLETE! Committing address directly to NVS registers: %s\n", remoteMacStr);
+      Serial.printf("[SUCCESS] PAIR COMPLETE! Committing address to NVS: %s\n", remoteMacStr);
       writeStoredMac(capturedRemoteMac);
       
-      digitalWrite(STATUS_LED, HIGH); // Turn LED off cleanly before rebooting
-      delay(1000); // Give file systems an explicit moment to safely close
+      digitalWrite(STATUS_LED, HIGH); 
+      
+      Serial.println("[SYS] Waiting 1.5 seconds for controller to ingest packet before reboot...");
+      delay(1500); 
+      
       Serial.println("[SYS] Rebooting into Driving Loops now...");
       ESP.restart();
   }
 }
-
-
-

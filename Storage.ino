@@ -1,14 +1,10 @@
 /**
  * ==============================================================================
  * Storage.ino (Professional Non-Volatile Storage Engine)
- * Replaces LittleFS with native ESP32 NVS Flash Partitioning
  * ==============================================================================
  */
 
-// FIXED: Removed duplicate 'Preferences nvStorage;' declaration from this tab!
-
 void CheckFileSystem() {
-  // We leave this function here as a clean, silent baseline so setup() remains intact
   if (DEBUG_MODE) Serial.println("[NVS] Native flash storage engine ready.");
 }
 

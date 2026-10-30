@@ -1,16 +1,13 @@
 /**
- * ================ =============================================================
+ * ==============================================================================
  * ESP-NOW RC Receiver Core (ESP32-C3 Platform - V1 Hardware Layout)
- * Production Clean Version - Locked Structural Layout
  * ==============================================================================
  */
 #include <WiFi.h>
 #include <esp_now.h>
 #include <esp_wifi.h>
-#include <ESP32Servo.h>
 #include <Preferences.h> 
 
-Servo weapon;
 Preferences nvStorage; 
 
 const bool DEBUG_MODE = true; 
@@ -32,7 +29,6 @@ bool NewDataFlag            = false;
 bool SendBindingComplete    = false; 
 bool ReceiveBindingComplete = false;
 
-// THE EXACT MATCHING LOCKED STRUCTURE BLUEPRINT
 struct __attribute__((packed)) RC_Packet_Structure {
   uint8_t protocolMode; // 0 = Bind Request, 1 = Normal Drive, 2 = Bind Acknowledgement
   int motor_A1; int motor_A2;
