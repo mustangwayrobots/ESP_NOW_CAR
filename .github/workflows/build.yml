@@ -3,16 +3,17 @@ name: Compile and Deploy Firmware
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout Project Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Setup Arduino CLI
         uses: arduino/setup-arduino-cli@v2
@@ -25,19 +26,19 @@ jobs:
 
       - name: Pull Central Custom Libraries
         run: |
-          # Clones your private central libraries directly into the Arduino libraries path using the secure token
           git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/mustangwayrobots/arduino-libraries.git /home/runner/Arduino/libraries
 
       - name: Compile Sketch
         run: |
-          arduino-cli compile --fqbn esp32:esp32:esp32c3 --output-dir ./build .
+          arduino-cli compile --fqbn esp32:esp32:esp32c3 --output-dir ./build ESP_NOW_Controller.ino
 
       - name: Prepare Files for Web Flasher
         run: |
-          cp ./build/*.ino.merged.bin ./firmware.bin
+          find ./build -name "*.ino.merged.bin" -exec cp {} ./firmware.bin \;
+          ls -la ./
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./
