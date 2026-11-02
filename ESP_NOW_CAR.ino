@@ -1,6 +1,6 @@
 /**
  * ==============================================================================
- * ESP-NOW RC Receiver Core (ESP32-C3 Platform - V1 Hardware Layout)
+ * ESP-NOW RC Receiver Core (ESP32-C3 Platform - V1 Hardware Layout)  
  * ==============================================================================
  */
 #include <WiFi.h>
@@ -47,7 +47,9 @@ void writeStoredMac(const uint8_t* macIn);
 
 void setup() {
   Serial.begin(115200); 
-  delay(500); 
+    // Force 11dB attenuation on GPIO 3 to safely read up to 2.5V
+    analogSetPinAttenuation(3, ADC_11db); 
+  delay(50); 
   Serial.println("\n=============================================");
   Serial.println("[SYS] ESP32-C3 RC Receiver V1 Firmware Mounted");
   Serial.println("=============================================");
