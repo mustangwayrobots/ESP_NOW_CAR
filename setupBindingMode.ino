@@ -7,6 +7,8 @@ void setupBindingMode(){
   if (DEBUG_MODE) Serial.println("[INIT-BIND] Configuring radio network layers for pairing...");
   
   WiFi.mode(WIFI_STA);
+  WiFi.setTxPower(WIFI_POWER_8_5dBm); // Align TX power during broadcast handshake[cite: 10]
+
   if (esp_now_init() != ESP_OK) {
     Serial.println("[ERR] ESP_Now initialization failed in binding mode!");
     ESP.restart();
@@ -29,7 +31,7 @@ void setupBindingMode(){
     
     if (incoming->protocolMode == 0 && !ReceiveBindingComplete) {
       memcpy(capturedRemoteMac, recv_info->src_addr, 6);
-      ReceiveBindingComplete = true;
+      ReceiveBindingComplete = true; 
       
       Serial.printf("[COMM-BIND] Controller MAC Whitelisted: %02X:%02X:%02X:%02X:%02X:%02X\n",
                     capturedRemoteMac[0], capturedRemoteMac[1], capturedRemoteMac[2],

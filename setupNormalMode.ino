@@ -5,20 +5,9 @@
  */
 void setupNormalMode(){
   if (DEBUG_MODE) Serial.println("[INIT-NORM] Entering drive configurations setup sequence...");
-  
-  pinMode(A1Pin, OUTPUT);
-  pinMode(A2Pin, OUTPUT);
-  pinMode(B1Pin, OUTPUT);
-  pinMode(B2Pin, OUTPUT);
-  pinMode(WeaponPin, OUTPUT);
-
-  digitalWrite(A1Pin, LOW);
-  digitalWrite(A2Pin, LOW);
-  digitalWrite(B1Pin, LOW);
-  digitalWrite(B2Pin, LOW);
-  digitalWrite(WeaponPin, LOW);
 
   WiFi.mode(WIFI_STA);
+  WiFi.setTxPower(WIFI_POWER_8_5dBm); // Mitigate classroom RF congestion across 20 active cars[cite: 11]
 
   uint8_t remoteMac[6];
   if (!readStoredMac(remoteMac)) {
@@ -80,9 +69,8 @@ void setupNormalMode(){
   ledcAttach(B2Pin, 5000, 8);  
 
   // --- NATIVE SERVO FLIPPER SETUP (50Hz, 16-bit) ---
-  // Completely bypasses ESP32Servo library to prevent LEDC timer collisions with Motor B
   ledcAttach(WeaponPin, 50, 16);
-  uint32_t initialDuty = map(0, 0, 180, 3276, 6553); // Default rest position (0 degrees)
+  uint32_t initialDuty = map(0, 0, 180, 3276, 6553); 
   ledcWrite(WeaponPin, initialDuty);
   
   if (DEBUG_MODE) Serial.println("[INIT-NORM] Normal drive environment initialized successfully.");
