@@ -24,8 +24,7 @@ const bool DEBUG_MODE = true;
 #define BATTERY_ADC_PIN 3 
 
 bool NormalMode             = true;
-bool TXConnectionStatus     = false;
-bool NewDataFlag            = false;
+volatile bool NewDataFlag   = false; // Marked volatile for safe cross-task access
 bool SendBindingComplete    = false; 
 bool ReceiveBindingComplete = false;
 
@@ -47,9 +46,18 @@ void writeStoredMac(const uint8_t* macIn);
 
 void setup() {
   Serial.begin(115200); 
-    // Force 11dB attenuation on GPIO 3 to safely read up to 2.5V
-    analogSetPinAttenuation(3, ADC_11db); 
+  analogSetPinAttenuation(BATTERY_ADC_PIN, ADC_11db); 
   delay(50); 
+
+  // --- IMMEDIATE MOTOR KILL / SAFETY PINS INIT ---
+  // Force motor pins to OUTPUT and pull them LOW right at power-up 
+  // so no wheels spin while waiting for a connection/binding.
+  pinMode(A1Pin, OUTPUT); digitalWrite(A1Pin, LOW);
+  pinMode(A2Pin, OUTPUT); digitalWrite(A2Pin, LOW);
+  pinMode(B1Pin, OUTPUT); digitalWrite(B1Pin, LOW);
+  pinMode(B2Pin, OUTPUT); digitalWrite(B2Pin, LOW);
+  pinMode(WeaponPin, OUTPUT); digitalWrite(WeaponPin, LOW);
+
   Serial.println("\n=============================================");
   Serial.println("[SYS] ESP32-C3 RC Receiver V1 Firmware Mounted");
   Serial.println("=============================================");
@@ -58,11 +66,23 @@ void setup() {
   digitalWrite(STATUS_LED, HIGH); 
   pinMode(BindPin, INPUT_PULLUP);
 
-  Serial.println("[SYS] Booting straight to Normal Mode. Hold Bind 3s to Pair.");
-  setupNormalMode();      
+  // --- IMMEDIATE POWER-UP BIND CHECK ---
+  delay(50); // Small debounce stabilization window
+  if (digitalRead(BindPin) == LOW) {
+    Serial.println("[SYS] Bind button detected LOW at startup! Entering Binding Mode...");
+    NormalMode = false;
+    setupBindingMode();
+  } else {
+    Serial.println("[SYS] Booting straight to Normal Mode.");
+    setupNormalMode();      
+  }
 }
 
 void loop() {
   yield(); 
-  if (NormalMode) loopNormalMode(); else loopBindingMode();
+  if (NormalMode) {
+    loopNormalMode(); 
+  } else {
+    loopBindingMode();
+  }
 }
