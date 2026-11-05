@@ -1,6 +1,6 @@
 {
   "name": "ESP32 Robot Firmware (HARDWARE_V3)",
-  "version": "Build: 2026-11-05 19:56 UTC",
+  "version": "Build: 2026-11-05 20:06 UTC",
   "home_assistant_domain": "esp_web_tools",
   "new_install_prompt_erase": true,
   "builds": [
