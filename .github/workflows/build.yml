@@ -14,8 +14,10 @@ jobs:
       - name: Checkout Project Repository
         uses: actions/checkout@v4
 
-      - name: Setup Arduino CLI
-        uses: actions/setup-arduino-cli@v2
+      - name: Install Arduino CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
+          echo "$HOME/bin" >> $GITHUB_PATH
 
       - name: Initialize Arduino CLI & Add ESP32 Core
         run: |
@@ -42,9 +44,7 @@ jobs:
 
           for HW in $HARDWARES; do
             LOWER_HW=$(echo "$HW" | tr '[:upper:]' '[:lower:]')
-            APP_BIN="firmware_${LOWER_HW}.bin"
-            BOOT_BIN="bootloader_${LOWER_HW}.bin"
-            PART_BIN="partitions_${LOWER_HW}.bin"
+            BIN_NAME="firmware_${LOWER_HW}.bin"
             MANIFEST_NAME="manifest_${LOWER_HW}.json"
             
             echo "----------------------------------------"
@@ -53,30 +53,24 @@ jobs:
             
             arduino-cli compile --fqbn esp32:esp32:esp32c3 --build-property "build.extra_flags=-D$HW" --output-dir ./build_${LOWER_HW} .
             
-            # Extract individual build artifacts (avoiding merged.bin)
-            find ./build_${LOWER_HW} -name "*.ino.bin" ! -name "*.merged.bin" -exec cp {} ./flash/$APP_BIN \;
-            find ./build_${LOWER_HW} -name "*.bootloader.bin" -exec cp {} ./flash/$BOOT_BIN \;
-            find ./build_${LOWER_HW} -name "*.partitions.bin" -exec cp {} ./flash/$PART_BIN \;
-
-            # Create matching manifest using exact component offsets and string-casted hex values for jq compatibility
+            # Copy merged binary into flash folder
+            find ./build_${LOWER_HW} -name "*.ino.merged.bin" -exec cp {} ./flash/$BIN_NAME \;
+            
+            # Create manifest (with standard erase enabled for a clean state)
             jq -n \
               --arg name "ESP32-C3 Robot Firmware ($HW)" \
               --arg version "Build: $BUILD_DATE UTC" \
-              --arg app "$APP_BIN" \
-              --arg boot "$BOOT_BIN" \
-              --arg parts "$PART_BIN" \
+              --arg bin "$BIN_NAME" \
               '{
                 name: $name,
                 version: $version,
                 home_assistant_domain: "esp_web_tools",
-                new_install_prompt_erase: false,
+                new_install_prompt_erase: true,
                 builds: [
                   {
                     chipFamily: "ESP32-C3",
                     parts: [
-                      { path: $boot, offset: "0x0" },
-                      { path: $parts, offset: "0x8000" },
-                      { path: $app, offset: "0x10000" }
+                      { path: $bin, offset: 0 }
                     ]
                   }
                 ]
