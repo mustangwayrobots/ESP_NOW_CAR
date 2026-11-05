@@ -7,7 +7,9 @@ void setupNormalMode(){
   if (DEBUG_MODE) Serial.println("[INIT-NORM] Entering drive configurations setup sequence...");
 
   WiFi.mode(WIFI_STA);
-  WiFi.setTxPower(WIFI_POWER_8_5dBm); // Mitigate classroom RF congestion across 20 active cars[cite: 11]
+  WiFi.setTxPower(WIFI_POWER_19_5dBm); // Mitigate classroom RF congestion across 20 active cars
+//  esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_LR); // Enable Long Range mode
+
 
   uint8_t remoteMac[6];
   if (!readStoredMac(remoteMac)) {

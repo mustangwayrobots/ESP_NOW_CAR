@@ -7,7 +7,8 @@ void setupBindingMode(){
   if (DEBUG_MODE) Serial.println("[INIT-BIND] Configuring radio network layers for pairing...");
   
   WiFi.mode(WIFI_STA);
-  WiFi.setTxPower(WIFI_POWER_8_5dBm); // Align TX power during broadcast handshake[cite: 10]
+  WiFi.setTxPower(WIFI_POWER_19_5dBm); // Align TX power during broadcast handshake[cite: 10]
+//  esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_LR); // Enable Long Range mode
 
   if (esp_now_init() != ESP_OK) {
     Serial.println("[ERR] ESP_Now initialization failed in binding mode!");
