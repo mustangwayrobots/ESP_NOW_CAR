@@ -133,7 +133,6 @@
       margin-bottom: 2rem;
     }
 
-    /* Version Badge Styling */
     .build-badge {
       display: inline-flex;
       align-items: center;
@@ -166,7 +165,39 @@
       100% { transform: scale(0.95); opacity: 0.8; }
     }
 
-    /* Flasher Install Button Custom Styling */
+    .hardware-group {
+      margin-bottom: 1.5rem;
+      text-align: left;
+    }
+
+    .hardware-group label {
+      display: block;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      margin-bottom: 0.5rem;
+      font-family: 'Orbitron', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .hardware-select {
+      width: 100%;
+      padding: 0.75rem;
+      background-color: var(--btn-secondary-bg);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.2s ease;
+    }
+
+    .hardware-select:focus {
+      border-color: var(--accent-blue);
+    }
+
     esp-web-install-button {
       margin: 1rem 0;
     }
@@ -216,18 +247,28 @@
   </div>
 
   <main class="flasher-card">
-    <!-- Automatic Version & Timestamp Badge -->
     <div id="build-info-badge" class="build-badge">
       <span class="pulse-dot"></span>
-      <span id="version-text">Checking build version...</span>
+      <span id="version-text">Select Hardware Version</span>
+    </div>
+
+    <!-- Hardware Version Selector Dropdown -->
+    <div class="hardware-group">
+      <label for="hardware-select">Robot PCB Version:</label>
+      <select id="hardware-select" class="hardware-select" onchange="updateManifest()">
+        <option value="manifest_hardware_v1.json">Board Version V1 (Legacy)</option>
+        <option value="manifest_hardware_v2.json" selected>Board Version V2 (Current)</option>
+        <option value="manifest_hardware_v3.json">Board Version V3</option>
+        <option value="manifest_hardware_v4.json">Board Version V4</option>
+      </select>
     </div>
 
     <p class="instructions">
-      Connect your microcontroller board via USB, ensure you are using Google Chrome or Microsoft Edge, and click the button below to flash the firmware directly to your device.
+      Connect your robot board via USB, ensure you select your correct PCB hardware version above, and click install.
     </p>
 
     <!-- ESP Web Tools Install Button Component -->
-    <esp-web-install-button manifest="manifest.json">
+    <esp-web-install-button id="install-btn" manifest="manifest_hardware_v2.json">
       <button slot="activate" class="flash-btn">
         ⚡ Install Firmware
       </button>
@@ -239,36 +280,11 @@
   </footer>
 
   <script>
-    // Automatically fetch the last modified timestamp of manifest.json to display live version info
-    async function updateBuildTimestamp() {
-      const versionText = document.getElementById('version-text');
-      try {
-        const response = await fetch('manifest.json', { method: 'HEAD' });
-        if (response.ok) {
-          const lastModified = response.headers.get('last-modified');
-          if (lastModified) {
-            const date = new Date(lastModified);
-            const formattedDate = date.toLocaleDateString('en-US', { 
-              month: 'short', 
-              day: 'numeric', 
-              year: 'numeric' 
-            });
-            const formattedTime = date.toLocaleTimeString('en-US', { 
-              hour: '2-digit', 
-              minute: '2-digit' 
-            });
-            versionText.textContent = `Build: ${formattedDate} - ${formattedTime}`;
-            return;
-          }
-        }
-        versionText.textContent = 'Build: Live Version';
-      } catch (err) {
-        console.error('Could not fetch build timestamp', err);
-        versionText.textContent = 'Build: Active';
-      }
+    function updateManifest() {
+      const select = document.getElementById('hardware-select');
+      const installButton = document.getElementById('install-btn');
+      installButton.setAttribute('manifest', select.value);
     }
-
-    updateBuildTimestamp();
   </script>
 </body>
 </html>
