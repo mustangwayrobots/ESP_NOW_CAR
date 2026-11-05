@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Arduino CLI
-        uses: arduino/setup-arduino-cli@v2
+        uses: actions/setup-arduino-cli@v2
 
       - name: Initialize Arduino CLI & Add ESP32 Core
         run: |
@@ -42,7 +42,9 @@ jobs:
 
           for HW in $HARDWARES; do
             LOWER_HW=$(echo "$HW" | tr '[:upper:]' '[:lower:]')
-            BIN_NAME="firmware_${LOWER_HW}.bin"
+            APP_BIN="firmware_${LOWER_HW}.bin"
+            BOOT_BIN="bootloader_${LOWER_HW}.bin"
+            PART_BIN="partitions_${LOWER_HW}.bin"
             MANIFEST_NAME="manifest_${LOWER_HW}.json"
             
             echo "----------------------------------------"
@@ -51,14 +53,18 @@ jobs:
             
             arduino-cli compile --fqbn esp32:esp32:esp32c3 --build-property "build.extra_flags=-D$HW" --output-dir ./build_${LOWER_HW} .
             
-            # Copy the reliable single merged binary directly into the flash folder
-            find ./build_${LOWER_HW} -name "*.ino.merged.bin" -exec cp {} ./flash/$BIN_NAME \;
-            
-            # Create matching manifest targeting offset 0 with erase disabled to preserve NVS storage
+            # Extract individual build artifacts (avoiding merged.bin)
+            find ./build_${LOWER_HW} -name "*.ino.bin" ! -name "*.merged.bin" -exec cp {} ./flash/$APP_BIN \;
+            find ./build_${LOWER_HW} -name "*.bootloader.bin" -exec cp {} ./flash/$BOOT_BIN \;
+            find ./build_${LOWER_HW} -name "*.partitions.bin" -exec cp {} ./flash/$PART_BIN \;
+
+            # Create matching manifest using exact component offsets and string-casted hex values for jq compatibility
             jq -n \
               --arg name "ESP32-C3 Robot Firmware ($HW)" \
               --arg version "Build: $BUILD_DATE UTC" \
-              --arg bin "$BIN_NAME" \
+              --arg app "$APP_BIN" \
+              --arg boot "$BOOT_BIN" \
+              --arg parts "$PART_BIN" \
               '{
                 name: $name,
                 version: $version,
@@ -68,7 +74,9 @@ jobs:
                   {
                     chipFamily: "ESP32-C3",
                     parts: [
-                      { path: $bin, offset: 0 }
+                      { path: $boot, offset: "0x0" },
+                      { path: $parts, offset: "0x8000" },
+                      { path: $app, offset: "0x10000" }
                     ]
                   }
                 ]
