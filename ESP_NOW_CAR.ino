@@ -14,7 +14,7 @@ const bool DEBUG_MODE = true;
 
 #pragma once
 
-#ifdef BOARD_V3
+#ifdef HARDWARE_V3
   #define WIFI_CHANNEL 1
   #define STATUS_LED   8   
   #define A1Pin     1      
@@ -24,7 +24,7 @@ const bool DEBUG_MODE = true;
   #define BindPin   5      
   #define WeaponPin 4      
   #define BATTERY_ADC_PIN 3 
-#elif defined(BOARD_V4)
+#elif defined(HARDWARE_V4)
   #define WIFI_CHANNEL 1
   #define STATUS_LED   8   
   #define A1Pin     1      
@@ -35,7 +35,7 @@ const bool DEBUG_MODE = true;
   #define WeaponPin 4      
   #define BATTERY_ADC_PIN 3 
 #else
-  // Default / Version 2.0 (Legacy)
+  // Default /  HARDWARE Version 2.0 (Legacy)
   #define WIFI_CHANNEL 1
   #define STATUS_LED   8   
   #define A1Pin     1      
