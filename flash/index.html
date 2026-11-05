@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Firmware Flasher | Mustang Way Robots</title>
+  
+  <!-- Orbitron & Inter Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- ESP Web Tools Web Component -->
+  <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+
+  <style>
+    :root {
+      --bg-dark: #050b14;
+      --card-bg: #0c1524;
+      --accent-blue: #38bdf8;
+      --accent-hover: #0284c7;
+      --accent-glow: rgba(56, 189, 248, 0.25);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border-color: #1e293b;
+      --btn-secondary-bg: #1e293b;
+      --btn-secondary-hover: #334155;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.08) 0%, transparent 60%),
+        linear-gradient(to bottom, #050b14 0%, #030710 100%);
+      color: var(--text-main);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2.5rem 1rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+      max-width: 800px;
+    }
+
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 900;
+      color: var(--accent-blue);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+      text-shadow: 0 0 25px rgba(56, 189, 248, 0.4);
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      font-weight: 400;
+      margin-bottom: 1.5rem;
+    }
+
+    .nav-bar {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      justify-content: flex-start;
+      margin-bottom: 1.5rem;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-decoration: none;
+      background-color: var(--btn-secondary-bg);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.2s ease;
+    }
+
+    .back-btn:hover {
+      background-color: var(--accent-blue);
+      color: var(--bg-dark);
+      border-color: var(--accent-blue);
+    }
+
+    .flasher-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 600px;
+      text-align: center;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .flasher-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--accent-blue), transparent);
+    }
+
+    .instructions {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 2rem;
+    }
+
+    /* Version Badge Styling */
+    .build-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background-color: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--accent-blue);
+      font-family: 'Orbitron', monospace;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 1.5rem;
+    }
+
+    .pulse-dot {
+      width: 6px;
+      height: 6px;
+      background-color: var(--accent-blue);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent-blue);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 12px var(--accent-blue); }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+
+    /* Flasher Install Button Custom Styling */
+    esp-web-install-button {
+      margin: 1rem 0;
+    }
+
+    .flash-btn {
+      background-color: var(--accent-blue);
+      color: var(--bg-dark);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 800;
+      padding: 0.8rem 1.5rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(56, 189, 248, 0.2);
+    }
+
+    .flash-btn:hover {
+      background-color: var(--accent-hover);
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(56, 189, 248, 0.4);
+    }
+
+    footer {
+      margin-top: auto;
+      padding-top: 4rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Firmware Flasher</h1>
+    <p class="subtitle">Direct Browser Microcontroller Flashing</p>
+  </header>
+
+  <div class="nav-bar">
+    <a href="https://mustangwayrobots.github.io/" class="back-btn">
+      ← Back to Main Portal
+    </a>
+  </div>
+
+  <main class="flasher-card">
+    <!-- Automatic Version & Timestamp Badge -->
+    <div id="build-info-badge" class="build-badge">
+      <span class="pulse-dot"></span>
+      <span id="version-text">Checking build version...</span>
+    </div>
+
+    <p class="instructions">
+      Connect your microcontroller board via USB, ensure you are using Google Chrome or Microsoft Edge, and click the button below to flash the firmware directly to your device.
+    </p>
+
+    <!-- ESP Web Tools Install Button Component -->
+    <esp-web-install-button manifest="manifest.json">
+      <button slot="activate" class="flash-btn">
+        ⚡ Install Firmware
+      </button>
+    </esp-web-install-button>
+  </main>
+
+  <footer>
+    &copy; Mustang Way Robots • Downers Grove South High School
+  </footer>
+
+  <script>
+    // Automatically fetch the last modified timestamp of manifest.json to display live version info
+    async function updateBuildTimestamp() {
+      const versionText = document.getElementById('version-text');
+      try {
+        const response = await fetch('manifest.json', { method: 'HEAD' });
+        if (response.ok) {
+          const lastModified = response.headers.get('last-modified');
+          if (lastModified) {
+            const date = new Date(lastModified);
+            const formattedDate = date.toLocaleDateString('en-US', { 
+              month: 'short', 
+              day: 'numeric', 
+              year: 'numeric' 
+            });
+            const formattedTime = date.toLocaleTimeString('en-US', { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            });
+            versionText.textContent = `Build: ${formattedDate} - ${formattedTime}`;
+            return;
+          }
+        }
+        versionText.textContent = 'Build: Live Version';
+      } catch (err) {
+        console.error('Could not fetch build timestamp', err);
+        versionText.textContent = 'Build: Active';
+      }
+    }
+
+    updateBuildTimestamp();
+  </script>
+</body>
+</html>
