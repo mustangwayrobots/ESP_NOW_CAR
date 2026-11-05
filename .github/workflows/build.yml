@@ -29,8 +29,6 @@ jobs:
 
       - name: Auto-Detect Hardware Versions and Compile All Variants
         run: |
-          mkdir -p ./flash
-          
           # Strictly find hardware versions like HARDWARE_V1, HARDWARE_V2, HARDWARE_V3, etc.
           HARDWARES=$(grep -roh "HARDWARE_V[0-9]\+" . | sort -u || true)
           
@@ -56,18 +54,18 @@ jobs:
             # Compile sketch passing the dynamic hardware definition flag
             arduino-cli compile --fqbn esp32:esp32:esp32c3 --build-property "build.extra_flags=-D$HW" --output-dir ./build_${LOWER_HW} .
             
-            # Copy the merged binary to root directory
+            # Copy the merged binary directly to the root directory
             find ./build_${LOWER_HW} -name "*.ino.merged.bin" -exec cp {} ./$BIN_NAME \;
             
             # Format display name for the web dropdown (e.g., "Board Version V1")
             DISPLAY_NAME="Board Version V${HW#HARDWARE_V}"
 
-            # Append to manifest builds array
-            BUILDS_JSON=$(echo "$BUILDS_JSON" | jq --arg path "../$BIN_NAME" --arg name "$DISPLAY_NAME" \
+            # Append to manifest builds array using root-relative path ./
+            BUILDS_JSON=$(echo "$BUILDS_JSON" | jq --arg path "./$BIN_NAME" --arg name "$DISPLAY_NAME" \
               '. + [{"chipFamily": "ESP32-C3", "name": $name, "parts": [{"path": $path, "offset": 0}]}]')
           done
 
-          # Automatically generate the final flash/manifest.json file
+          # Automatically generate the final manifest.json in the root directory
           jq -n \
             --arg name "ESP32 Robot Firmware" \
             --arg version "Build: $BUILD_DATE UTC" \
@@ -78,10 +76,10 @@ jobs:
               home_assistant_domain: "esp_web_tools",
               new_install_prompt_erase: true,
               builds: $builds
-            }' > ./flash/manifest.json
+            }' > ./manifest.json
 
-          echo "Generated manifest.json successfully:"
-          cat ./flash/manifest.json
+          echo "Generated manifest.json successfully in root directory:"
+          cat ./manifest.json
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
