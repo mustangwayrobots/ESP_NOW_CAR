@@ -25,16 +25,66 @@ jobs:
 
       - name: Pull Central Custom Libraries
         run: |
-          # Clones your private central libraries directly into the Arduino libraries path using the secure token
           git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/mustangwayrobots/arduino-libraries.git /home/runner/Arduino/libraries
 
-      - name: Compile Sketch
+      - name: Auto-Detect Boards and Compile All Variants
         run: |
-          arduino-cli compile --fqbn esp32:esp32:esp32c3 --output-dir ./build .
+          mkdir -p ./flash
+          
+          # 1. Automatically scan codebase for BOARD_ identifiers (e.g., BOARD_V1, BOARD_V2, BOARD_V3)
+          # We search all .ino and .h files, extract matches, and ensure BOARD_V1 is included as baseline if not explicitly found.
+          BOARDS=$(grep -roh "BOARD_[A-Z0-9_]*" . | sort -u || true)
+          if ! echo "$BOARDS" | grep -q "BOARD_V1"; then
+            BOARDS="BOARD_V1
+          $BOARDS"
+          fi
+          
+          echo "Detected Board Variants:"
+          echo "$BOARDS"
 
-      - name: Prepare Files for Web Flasher
-        run: |
-          cp ./build/*.ino.merged.bin ./firmware.bin
+          # 2. Initialize the JSON builds array for the manifest
+          BUILDS_JSON="[]"
+          BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M")
+
+          # 3. Loop through each discovered board variant and compile
+          for BOARD in $BOARDS; do
+            # Format clean lowercase identifier for filenames (e.g., board_v1, board_v2)
+            LOWER_BOARD=$(echo "$BOARD" | tr '[:upper:]' '[:lower:]')
+            BIN_NAME="firmware_${LOWER_BOARD}.bin"
+            
+            echo "----------------------------------------"
+            echo "Compiling for $BOARD..."
+            echo "----------------------------------------"
+            
+            # Compile sketch with the specific board build property flag
+            arduino-cli compile --fqbn esp32:esp32:esp32c3 --build-property "build.extra_flags=-D$BOARD" --output-dir ./build_${LOWER_BOARD} .
+            
+            # Extract and copy the merged binary to root directory
+            find ./build_${LOWER_BOARD} -name "*.ino.merged.bin" -exec cp {} ./$BIN_NAME \;
+            
+            # Create a clean display name for the flash tool dropdown (e.g., "Board V2 (BOARD_V2)")
+            DISPLAY_NAME="Board Version ${BOARD#BOARD_}"
+
+            # Append this board configuration to our dynamic JSON array using jq
+            BUILDS_JSON=$(echo "$BUILDS_JSON" | jq --arg path "../$BIN_NAME" --arg name "$DISPLAY_NAME" \
+              '. + [{"chipFamily": "ESP32-C3", "name": $name, "parts": [{"path": $path, "offset": 0}]}]')
+          done
+
+          # 4. Automatically generate the final flash/manifest.json file
+          jq -n \
+            --arg name "ESP32 Robot Firmware" \
+            --arg version "Build: $BUILD_DATE UTC" \
+            --argjson builds "$BUILDS_JSON" \
+            '{
+              name: $name,
+              version: $version,
+              home_assistant_domain: "esp_web_tools",
+              new_install_prompt_erase: true,
+              builds: $builds
+            }' > ./flash/manifest.json
+
+          echo "Generated manifest.json successfully:"
+          cat ./flash/manifest.json
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
