@@ -27,13 +27,17 @@ jobs:
         run: |
           git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/mustangwayrobots/arduino-libraries.git /home/runner/Arduino/libraries
 
-      - name: Compile and Generate Separate Manifests in Flash Folder
+      - name: Compile and Generate Manifests for All Hardware Versions
         run: |
           mkdir -p ./flash
-          HARDWARES=$(grep -roh "HARDWARE_V[0-9]\+" . | sort -u || true)
-          if [ -z "$HARDWARES" ]; then
-            HARDWARES="HARDWARE_V1"
-          fi
+          
+          # Explicitly target V1 and V2, plus dynamically catch any V3/V4 if present in code
+          DETECTED=$(grep -roh "HARDWARE_V[0-9]\+" . | sort -u || true)
+          HARDWARES="HARDWARE_V1 HARDWARE_V2 $DETECTED"
+          HARDWARES=$(echo $HARDWARES | tr ' ' '\n' | sort -u)
+
+          echo "Compiling Hardware Variants:"
+          echo "$HARDWARES"
 
           BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M")
 
@@ -42,13 +46,16 @@ jobs:
             BIN_NAME="firmware_${LOWER_HW}.bin"
             MANIFEST_NAME="manifest_${LOWER_HW}.json"
             
+            echo "----------------------------------------"
             echo "Compiling for $HW..."
+            echo "----------------------------------------"
+            
             arduino-cli compile --fqbn esp32:esp32:esp32c3 --build-property "build.extra_flags=-D$HW" --output-dir ./build_${LOWER_HW} .
             
             # Copy binary directly into the flash folder
             find ./build_${LOWER_HW} -name "*.ino.merged.bin" -exec cp {} ./flash/$BIN_NAME \;
             
-            # Create individual manifest inside flash folder (bin and manifest are side-by-side)
+            # Create matching manifest inside flash folder
             jq -n \
               --arg name "ESP32 Robot Firmware ($HW)" \
               --arg version "Build: $BUILD_DATE UTC" \
