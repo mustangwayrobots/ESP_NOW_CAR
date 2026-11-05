@@ -21,6 +21,7 @@ jobs:
 
       - name: Initialize Arduino CLI & Add ESP32 Core
         run: |
+          export PATH="$HOME/bin:$PATH"
           arduino-cli config init --additional-urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
           arduino-cli core update-index
           arduino-cli core install esp32:esp32
@@ -31,6 +32,7 @@ jobs:
 
       - name: Compile and Generate Manifests for All Hardware Versions
         run: |
+          export PATH="$HOME/bin:$PATH"
           mkdir -p ./flash
           
           DETECTED=$(grep -roh "HARDWARE_V[0-9]\+" . | sort -u || true)
@@ -56,7 +58,7 @@ jobs:
             # Copy merged binary into flash folder
             find ./build_${LOWER_HW} -name "*.ino.merged.bin" -exec cp {} ./flash/$BIN_NAME \;
             
-            # Create manifest (with standard erase enabled for a clean state)
+            # Create manifest
             jq -n \
               --arg name "ESP32-C3 Robot Firmware ($HW)" \
               --arg version "Build: $BUILD_DATE UTC" \
