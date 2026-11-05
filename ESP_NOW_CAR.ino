@@ -12,16 +12,40 @@ Preferences nvStorage;
 
 const bool DEBUG_MODE = true; 
 
-#define WIFI_CHANNEL 1
-#define STATUS_LED   8   
+#pragma once
 
-#define A1Pin     1      
-#define A2Pin     0      
-#define B1Pin     20      
-#define B2Pin     10     
-#define BindPin   5      
-#define WeaponPin 4      
-#define BATTERY_ADC_PIN 3 
+#ifdef BOARD_V3
+  #define WIFI_CHANNEL 1
+  #define STATUS_LED   8   
+  #define A1Pin     1      
+  #define A2Pin     0      
+  #define B1Pin     20      
+  #define B2Pin     10     
+  #define BindPin   5      
+  #define WeaponPin 4      
+  #define BATTERY_ADC_PIN 3 
+#elif defined(BOARD_V4)
+  #define WIFI_CHANNEL 1
+  #define STATUS_LED   8   
+  #define A1Pin     1      
+  #define A2Pin     0      
+  #define B1Pin     20      
+  #define B2Pin     10     
+  #define BindPin   5      
+  #define WeaponPin 4      
+  #define BATTERY_ADC_PIN 3 
+#else
+  // Default / Version 2.0 (Legacy)
+  #define WIFI_CHANNEL 1
+  #define STATUS_LED   8   
+  #define A1Pin     1      
+  #define A2Pin     0      
+  #define B1Pin     20      
+  #define B2Pin     10     
+  #define BindPin   5      
+  #define WeaponPin 4      
+  #define BATTERY_ADC_PIN 3 
+#endif
 
 bool NormalMode             = true;
 volatile bool NewDataFlag   = false; // Marked volatile for safe cross-task access
