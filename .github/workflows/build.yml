@@ -42,7 +42,10 @@ jobs:
 
           for HW in $HARDWARES; do
             LOWER_HW=$(echo "$HW" | tr '[:upper:]' '[:lower:]')
-            BIN_NAME="firmware_${LOWER_HW}.bin"
+            APP_BIN="firmware_${LOWER_HW}.bin"
+            BOOT_BIN="bootloader_${LOWER_HW}.bin"
+            PART_BIN="partitions_${LOWER_HW}.bin"
+            BOOTAPP_BIN="boot_app0_${LOWER_HW}.bin"
             MANIFEST_NAME="manifest_${LOWER_HW}.json"
             
             echo "----------------------------------------"
@@ -51,14 +54,25 @@ jobs:
             
             arduino-cli compile --fqbn esp32:esp32:esp32c3 --build-property "build.extra_flags=-D$HW" --output-dir ./build_${LOWER_HW} .
             
-            # Copy ONLY the pure application binary (.ino.bin, excluding bootloader/partitions/merged)
-            find ./build_${LOWER_HW} -name "*.ino.bin" ! -name "*.bootloader.bin" ! -name "*.partitions.bin" ! -name "*.merged.bin" -exec cp {} ./flash/$BIN_NAME \;
+            # Copy and rename individual binaries needed for non-destructive flashing
+            find ./build_${LOWER_HW} -name "*.ino.bin" ! -name "*.merged.bin" -exec cp {} ./flash/$APP_BIN \;
+            find ./build_${LOWER_HW} -name "*.bootloader.bin" -exec cp {} ./flash/$BOOT_BIN \;
+            find ./build_${LOWER_HW} -name "*.partitions.bin" -exec cp {} ./flash/$PART_BIN \;
+            find ./build_${LOWER_HW} -name "*.bin" | grep -E "boot_app0" | head -n 1 | xargs -I {} cp {} ./flash/$BOOTAPP_BIN || true
             
-            # Create matching manifest targeting app offset 0x10000 (65536) to preserve NVS
+            # Fallback for boot_app0 if named differently by the core version
+            if [ ! -f ./flash/$BOOTAPP_BIN ]; then
+              find ~/.arduino15/packages/esp32/hardware/esp32/*/tools/sdk/esp32c3/bin/boot_app0.bin -exec cp {} ./flash/$BOOTAPP_BIN \; || true
+            fi
+
+            # Create matching manifest targeting correct ESP32-C3 standard flash offsets
+            # Keeping new_install_prompt_erase: false preserves the NVS partition region
             jq -n \
-              --arg name "ESP32 Robot Firmware ($HW)" \
+              --arg name "ESP32-C3 Robot Firmware ($HW)" \
               --arg version "Build: $BUILD_DATE UTC" \
-              --arg bin "$BIN_NAME" \
+              --arg app "$APP_BIN" \
+              --arg boot "$BOOT_BIN" \
+              --arg parts "$PART_BIN" \
               '{
                 name: $name,
                 version: $version,
@@ -68,7 +82,9 @@ jobs:
                   {
                     chipFamily: "ESP32-C3",
                     parts: [
-                      { path: $bin, offset: 65536 }
+                      { path: $boot, offset: 0x0 },
+                      { path: $parts, offset: 0x8000 },
+                      { path: $app, offset: 0x10000 }
                     ]
                   }
                 ]
