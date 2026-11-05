@@ -55,7 +55,10 @@ jobs:
             # Copy binary directly into the flash folder
             find ./build_${LOWER_HW} -name "*.ino.merged.bin" -exec cp {} ./flash/$BIN_NAME \;
             
-            # Create matching manifest inside flash folder (new_install_prompt_erase set to false to preserve NVS)
+            # Clean up intermediate build folder to keep workspace tidy
+            rm -rf ./build_${LOWER_HW}
+            
+            # Create matching manifest inside flash folder
             jq -n \
               --arg name "ESP32 Robot Firmware ($HW)" \
               --arg version "Build: $BUILD_DATE UTC" \
