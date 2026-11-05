@@ -1,7 +1,7 @@
 {
   "additionalFiles": "../..,../../..,../..",
   "compiler.optimization_flags": "-Os",
-  "customBuildProperties": "",
+  "customBuildProperties": "build.extra_flags=-DBOARD_V4",
   "fqbn": "esp32:esp32:esp32c3",
   "hardwareFolders": "/home/runner/.arduino15/packages/esp32/hardware/esp32/3.3.12,/home/runner/.arduino15/packages/esp32/hardware/esp32/3.3.12",
   "otherLibrariesFolders": "/home/runner/Arduino/libraries",
