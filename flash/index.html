@@ -159,10 +159,7 @@
     <div class="hardware-group">
       <label for="hardware-select">Robot Hardware Version:</label>
       <select id="hardware-select" class="hardware-select" onchange="updateManifest()">
-        <option value="manifest_hardware_v1.json">Hardware Version V1 (Legacy)</option>
-        <option value="manifest_hardware_v2.json" selected>Hardware Version V2 (Current)</option>
-        <option value="manifest_hardware_v3.json">Hardware Version V3</option>
-        <option value="manifest_hardware_v4.json">Hardware Version V4</option>
+        <!-- OPTIONS_INJECTED_BY_CI -->
       </select>
     </div>
 
@@ -170,8 +167,8 @@
       Connect your robot board via USB, select your correct hardware version above, and click install. Stored settings and NVS memory will be preserved.
     </p>
 
-    <!-- ESP Web Tools Install Button Component -->
-    <esp-web-install-button id="install-btn" manifest="manifest_hardware_v2.json">
+    <!-- ESP Web Tools Install Button Component (manifest attribute populated dynamically by CI) -->
+    <esp-web-install-button id="install-btn" manifest="DEFAULT_MANIFEST_PLACEHOLDER">
       <button slot="activate" class="flash-btn">
         ⚡ Install Firmware
       </button>
