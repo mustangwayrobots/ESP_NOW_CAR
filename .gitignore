@@ -1,7 +1,11 @@
-# Compiled binaries and temporary build folders
+# Directories not part of Arduino IDE coding
+.git/
+.github/
 build/
-*.hex
-*.elf
+flash/
+images/
 
-# Allow the web flasher binary to be tracked/deployed
-!firmware.bin
+# File types and metadata
+.gitattributes
+.gitignore
+*.md
