@@ -1,51 +1,17 @@
 /**
  * ==============================================================================
- * ESP-NOW RC Receiver Core (ESP32-C3 Platform - V1 Hardware Layout)  
+ * ESP-NOW RC Receiver Core (Multi-Hardware Platform)  
  * ==============================================================================
  */
 #include <WiFi.h>
 #include <esp_now.h>
 #include <esp_wifi.h>
 #include <Preferences.h> 
+#include "HardwareConfig.h" // Pulls in version-specific pin maps
 
 Preferences nvStorage; 
 
 const bool DEBUG_MODE = true; 
-
-#pragma once
-
-#ifdef HARDWARE_V3
-  #define WIFI_CHANNEL 1
-  #define STATUS_LED   8   
-  #define A1Pin     1      
-  #define A2Pin     0      
-  #define B1Pin     20      
-  #define B2Pin     10     
-  #define BindPin   5      
-  #define WeaponPin 4      
-  #define BATTERY_ADC_PIN 3 
-#elif defined(HARDWARE_V4)
-  #define WIFI_CHANNEL 1
-  #define STATUS_LED   8   
-  #define A1Pin     1      
-  #define A2Pin     0      
-  #define B1Pin     20      
-  #define B2Pin     10     
-  #define BindPin   5      
-  #define WeaponPin 4      
-  #define BATTERY_ADC_PIN 3 
-#else
-  // Default /  HARDWARE Version 2.0 (Legacy)
-  #define WIFI_CHANNEL 1
-  #define STATUS_LED   8   
-  #define A1Pin     1      
-  #define A2Pin     0      
-  #define B1Pin     20      
-  #define B2Pin     10     
-  #define BindPin   5      
-  #define WeaponPin 4      
-  #define BATTERY_ADC_PIN 3 
-#endif
 
 bool NormalMode             = true;
 volatile bool NewDataFlag   = false; // Marked volatile for safe cross-task access
@@ -83,7 +49,7 @@ void setup() {
   pinMode(WeaponPin, OUTPUT); digitalWrite(WeaponPin, LOW);
 
   Serial.println("\n=============================================");
-  Serial.println("[SYS] ESP32-C3 RC Receiver V1 Firmware Mounted");
+  Serial.printf("[SYS] %s Mounted\n", BOARD_VERSION_STR);
   Serial.println("=============================================");
 
   pinMode(STATUS_LED, OUTPUT);
