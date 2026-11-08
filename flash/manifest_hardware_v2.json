@@ -1,6 +1,6 @@
 {
   "name": "ESP32-C3 Robot Firmware (HARDWARE_V2)",
-  "version": "Build: 2026-11-08 04:28 UTC",
+  "version": "Build: 2026-11-08 04:58 UTC",
   "home_assistant_domain": "esp_web_tools",
   "new_install_prompt_erase": false,
   "builds": [
