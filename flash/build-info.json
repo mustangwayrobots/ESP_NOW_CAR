@@ -1,8 +1,8 @@
 {
   "repo": "ESP_NOW_CAR",
   "repo_url": "https://github.com/mustangwayrobots/ESP_NOW_CAR",
-  "build_date": "2026-11-12 22:29",
-  "commit": "86fb826",
+  "build_date": "2026-11-12 22:40",
+  "commit": "3d84722",
   "core": "esp32 3.3.12",
   "boards": [
     {
