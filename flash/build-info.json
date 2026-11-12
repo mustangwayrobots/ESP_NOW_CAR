@@ -1,0 +1,24 @@
+{
+  "repo": "ESP_NOW_CAR",
+  "repo_url": "https://github.com/mustangwayrobots/ESP_NOW_CAR",
+  "build_date": "2026-11-12 22:29",
+  "commit": "86fb826",
+  "core": "esp32 3.3.12",
+  "boards": [
+    {
+      "id": "HARDWARE_V2",
+      "label": "Hardware V2",
+      "manifest": "manifest_hardware_v2.json"
+    },
+    {
+      "id": "HARDWARE_V3",
+      "label": "Hardware V3",
+      "manifest": "manifest_hardware_v3.json"
+    },
+    {
+      "id": "HARDWARE_V4",
+      "label": "Hardware V4",
+      "manifest": "manifest_hardware_v4.json"
+    }
+  ]
+}
