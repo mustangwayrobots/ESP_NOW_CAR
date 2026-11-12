@@ -2,6 +2,10 @@
  * ==============================================================================
  * setupBindingMode.ino (Car Receiver - Length Validation in Binding Mode)
  * ==============================================================================
+ * The radio callback below only copies data and raises flags.
+ * Slow work (printing, adding the controller as a peer, saving to flash)
+ * is done in loopBindingMode.ino, because callbacks run inside the Wi-Fi
+ * task and must return quickly. (Same pattern as the controller.)
  */
 void setupBindingMode(){
   if (DEBUG_MODE) Serial.println("[INIT-BIND] Configuring radio network layers for pairing...");
@@ -27,37 +31,20 @@ void setupBindingMode(){
   esp_now_add_peer(&peerInfo);
 
   esp_now_register_recv_cb([](const esp_now_recv_info_t *recv_info, const uint8_t *data, int len) {
-    // Validate packet length before parsing (O-08)
-    if (len >= sizeof(RC_Packet_Structure)) {
-      RC_Packet_Structure *incoming = (RC_Packet_Structure*)data;
-      
-      if (incoming->protocolMode == 0 && !ReceiveBindingComplete) {
-        memcpy(capturedRemoteMac, recv_info->src_addr, 6);
-        ReceiveBindingComplete = true; 
-        
-        Serial.printf("[COMM-BIND] Controller MAC Whitelisted: %02X:%02X:%02X:%02X:%02X:%02X\n",
-                      capturedRemoteMac[0], capturedRemoteMac[1], capturedRemoteMac[2],
-                      capturedRemoteMac[3], capturedRemoteMac[4], capturedRemoteMac[5]);
-        
-        esp_now_peer_info_t unicastPeer = {};
-        memcpy(unicastPeer.peer_addr, capturedRemoteMac, 6);
-        unicastPeer.channel = WIFI_CHANNEL;
-        unicastPeer.ifidx = WIFI_IF_STA;
-        unicastPeer.encrypt = false;
-        esp_now_add_peer(&unicastPeer);
-      }
-      
-      if (incoming->protocolMode == 3 && ReceiveBindingComplete) {
-        if (memcmp(recv_info->src_addr, capturedRemoteMac, 6) == 0) {
-          HandshakeConfirmed = true;
-        }
-      }
-    }
-  });  
+    if (len < (int)sizeof(RC_Packet_Structure)) return;   // too short, ignore (O-08)
+    const RC_Packet_Structure *incoming = (const RC_Packet_Structure*)data;
 
-  esp_now_register_send_cb([](const esp_now_send_info_t *tx_info, esp_now_send_status_t status) {
-    if (status == ESP_NOW_SEND_SUCCESS && ReceiveBindingComplete) {
-      SendBindingComplete = true;
+    // Mode 0: the first controller asking to pair is captured
+    if (incoming->protocolMode == 0 && !ReceiveBindingComplete) {
+      memcpy(capturedRemoteMac, recv_info->src_addr, 6);   // copy first...
+      ReceiveBindingComplete = true;                        // ...then raise the flag
+      return;
+    }
+
+    // Mode 3: that same controller confirms it got our acknowledgement
+    if (incoming->protocolMode == 3 && ReceiveBindingComplete &&
+        memcmp(recv_info->src_addr, capturedRemoteMac, 6) == 0) {
+      HandshakeConfirmed = true;
     }
   });
 }
