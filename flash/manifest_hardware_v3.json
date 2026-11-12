@@ -1,6 +1,6 @@
 {
-  "name": "ESP32-C3 Robot Firmware (HARDWARE_V3)",
-  "version": "Build: 2026-11-12 21:32 UTC",
+  "name": "RC Car Firmware (HARDWARE V3)",
+  "version": "Build: 2026-11-12 21:32 UTC, core 3.3.12",
   "home_assistant_domain": "esp_web_tools",
   "new_install_prompt_erase": false,
   "builds": [
