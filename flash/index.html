@@ -159,8 +159,7 @@
     <div class="hardware-group">
       <label for="hardware-select">Robot Hardware Version:</label>
       <select id="hardware-select" class="hardware-select" onchange="updateManifest()">
-                <option value="manifest_hardware_v1.json" selected>HARDWARE V1 (Current)</option>
-        <option value="manifest_hardware_v2.json">HARDWARE V2</option>
+                <option value="manifest_hardware_v2.json" selected>HARDWARE V2</option>
         <option value="manifest_hardware_v3.json">HARDWARE V3</option>
         <option value="manifest_hardware_v4.json">HARDWARE V4</option>
 
@@ -172,7 +171,7 @@
     </p>
 
     <!-- ESP Web Tools Install Button Component (manifest attribute populated dynamically by CI) -->
-    <esp-web-install-button id="install-btn" manifest="manifest_hardware_v1.json">
+    <esp-web-install-button id="install-btn" manifest="manifest_hardware_v2.json">
       <button slot="activate" class="flash-btn">
         ⚡ Install Firmware
       </button>
