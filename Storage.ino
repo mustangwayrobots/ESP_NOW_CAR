@@ -17,12 +17,18 @@ bool readStoredMac(uint8_t* macOut) {
   return false;
 }
 
-void writeStoredMac(const uint8_t* macIn) {
+// Returns true if all 6 bytes were written
+bool writeStoredMac(const uint8_t* macIn) {
   if (DEBUG_MODE) Serial.println("[NVS] Writing verified Controller MAC to non-volatile registers...");
   
   nvStorage.begin("rc_car", false); 
-  nvStorage.putBytes("controller_mac", macIn, 6);
+  size_t bytesWritten = nvStorage.putBytes("controller_mac", macIn, 6);
   nvStorage.end(); 
   
+  if (bytesWritten != 6) {
+    Serial.println("[ERR] Flash write FAILED. The old pairing (if any) is kept.");
+    return false;
+  }
   if (DEBUG_MODE) Serial.println("[NVS] Storage transaction completed safely.");
+  return true;
 }

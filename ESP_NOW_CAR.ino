@@ -7,17 +7,22 @@
 #include <esp_now.h>
 #include <esp_wifi.h>
 #include <Preferences.h> 
+
+// --- Board choice: change HARDWARE_V2 below to HARDWARE_V3 or HARDWARE_V4 ---
+// (A build that passes -DHARDWARE_Vx, like the GitHub flasher build, overrides this.)
+#if !defined(HARDWARE_V2) && !defined(HARDWARE_V3) && !defined(HARDWARE_V4)
+  #define HARDWARE_V2
+#endif
 #include "HardwareConfig.h" 
 
 Preferences nvStorage; 
 
 const bool DEBUG_MODE = true; 
 
-bool NormalMode             = true;
-volatile bool NewDataFlag   = false; 
-bool SendBindingComplete    = false; 
-bool ReceiveBindingComplete = false;
-volatile bool HandshakeConfirmed = false; // Set true when controller confirms receipt (O-04)
+bool NormalMode                     = true;
+volatile bool NewDataFlag           = false; 
+volatile bool ReceiveBindingComplete = false; // Set by the binding receive callback when a controller is captured
+volatile bool HandshakeConfirmed    = false;  // Set true when controller confirms receipt (mode 3)
 
 struct __attribute__((packed)) RC_Packet_Structure {
   uint8_t protocolMode; // 0 = Bind Request, 1 = Normal Drive, 2 = Bind Acknowledgement, 3 = Bind Confirmed
@@ -27,14 +32,19 @@ struct __attribute__((packed)) RC_Packet_Structure {
 };
 
 RC_Packet_Structure SendingData;   
-RC_Packet_Structure ReceivingData; 
-uint8_t capturedRemoteMac[6];      
+RC_Packet_Structure ReceivingData;  // Written by the radio callback, read by the loop (guard with rxMux)
+uint8_t capturedRemoteMac[6];       // Written once by the binding callback before ReceiveBindingComplete is set
 uint8_t cachedRemoteMac[6];        
+
+// Lock shared by the radio callback and the loop, so a packet is never read half-copied
+portMUX_TYPE rxMux = portMUX_INITIALIZER_UNLOCKED;
 
 void setupNormalMode();   void setupBindingMode();
 void loopNormalMode();    void loopBindingMode();
 bool readStoredMac(uint8_t* macOut);
-void writeStoredMac(const uint8_t* macIn);
+bool writeStoredMac(const uint8_t* macIn);
+void initStatusLed();
+void setStatusLed(bool on);
 
 void setup() {
   Serial.begin(115200); 
@@ -51,8 +61,7 @@ void setup() {
   Serial.printf("[SYS] %s Mounted\n", BOARD_VERSION_STR);
   Serial.println("=============================================");
 
-  pinMode(STATUS_LED, OUTPUT);
-  digitalWrite(STATUS_LED, HIGH); 
+  initStatusLed();   // LED starts OFF (StatusLed.ino)
   pinMode(BindPin, INPUT_PULLUP);
 
   delay(50); 

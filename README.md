@@ -44,6 +44,17 @@ Developed for high school STEM and robotics education, this project integrates a
 
 ---
 
+## 📄 Specifications
+
+| Document | Covers |
+| :--- | :--- |
+| [Car Receiver Firmware – Functional Specification](Car%20Receiver%20Firmware%20%E2%80%93%20Functional%20Specification.md) | What the car firmware does, protocol, open items |
+| [Car Hardware – Functional Specification](Car%20Hardware%20%E2%80%93%20Functional%20Specification.md) | Car board V2–V4: power, pins, parts, open items |
+| [Controller Firmware – Functional Specification](https://github.com/mustangwayrobots/ESP_NOW_Controller/blob/main/Controller%20Firmware%20%E2%80%93%20Functional%20Specification.md) | Handheld controller firmware (separate repo) |
+| [Controller Hardware – Functional Specification](https://github.com/mustangwayrobots/ESP_NOW_Controller/blob/main/Controller%20Hardware%20%E2%80%93%20Functional%20Specification.md) | Handheld controller board (separate repo) |
+
+---
+
 ## ⚡ Firmware Installation & Web Flashing
 
 1. Connect your ESP32-C3 board to your computer via USB.

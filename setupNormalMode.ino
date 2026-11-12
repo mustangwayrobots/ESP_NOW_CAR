@@ -56,17 +56,18 @@ void setupNormalMode(){
     if (DEBUG_MODE) Serial.println("[INIT-NORM] Exclusive STA communication pipe established.");
   }
 
-  // Secure Receive Callback with Length Validation (O-08) and Sender Authentication (O-02)
+  // Receive callback: length check (O-08), mode check, sender check (O-02).
+  // The copy is done under rxMux so the loop never reads a half-copied packet (O-05).
   esp_now_register_recv_cb([](const esp_now_recv_info_t *recv_info, const uint8_t *data, int len) {
-    if (len >= sizeof(RC_Packet_Structure)) {
-      RC_Packet_Structure *incoming = (RC_Packet_Structure*)data;
-      
-      // Verify packet is normal drive mode AND sent exclusively by our paired controller
-      if (incoming->protocolMode == 1 && memcmp(recv_info->src_addr, cachedRemoteMac, 6) == 0) { 
-        memcpy(&ReceivingData, data, sizeof(RC_Packet_Structure));
-        NewDataFlag = true;
-      }
-    }
+    if (len < (int)sizeof(RC_Packet_Structure)) return;                // too short
+    const RC_Packet_Structure *incoming = (const RC_Packet_Structure*)data;
+    if (incoming->protocolMode != 1) return;                           // not a drive packet
+    if (memcmp(recv_info->src_addr, cachedRemoteMac, 6) != 0) return;  // not our controller
+
+    portENTER_CRITICAL(&rxMux);
+    memcpy(&ReceivingData, data, sizeof(RC_Packet_Structure));
+    NewDataFlag = true;
+    portEXIT_CRITICAL(&rxMux);
   });
 
   ledcAttach(A1Pin, 5000, 8);  
