@@ -1,11 +1,30 @@
 name: Compile and Deploy Firmware
 
+# ===========================================================================
+# Generic build for Mustang Way Robots ESP32-C3 projects.
+# Copy this file unchanged into any project's .github/workflows/ folder,
+# along with flash/index.html. It finds everything else by itself:
+#   - the sketch: the .ino file whose name matches its folder
+#   - the boards: every HARDWARE_Vx in that sketch's HardwareConfig.h
+#                 (#if / #elif / #ifdef lines). No HardwareConfig.h, or no
+#                 HARDWARE_Vx in it = one build with no board flag.
+#   - libraries:  a libraries/ folder in the repo is used if there is one
+# ===========================================================================
+
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:        # lets you re-run the build from the Actions tab
 
 permissions:
   contents: write
+
+# Shared settings. Keep CORE_VERSION and FQBN the same as Arduino IDE
+# (core: Tools > Board > Boards Manager > esp32, board: MakerGO ESP32 C3
+# SuperMini, which turns USB Serial on).
+env:
+  CORE_VERSION: "3.3.12"
+  FQBN: "esp32:esp32:makergo_c3_supermini"
 
 jobs:
   build:
@@ -21,52 +40,85 @@ jobs:
         run: |
           arduino-cli config init --additional-urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
           arduino-cli core update-index
-          arduino-cli core install esp32:esp32
+          arduino-cli core install "esp32:esp32@${CORE_VERSION}"
 
       - name: Pull Central Custom Libraries
         run: |
           git clone https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/mustangwayrobots/arduino-libraries.git /home/runner/Arduino/libraries
 
-      - name: Compile, Generate Manifests, and Populate Flasher UI
+      - name: Compile, Generate Manifests, and Build Info
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
         run: |
+          set -euo pipefail
+
+          # --- Find the sketch: the .ino whose file name matches its folder ---
+          SKETCH_DIR=""
+          while IFS= read -r INO; do
+            DIR=$(dirname "$INO")
+            if [ "$(basename "$INO" .ino)" = "$(basename "$(cd "$DIR" && pwd)")" ]; then
+              SKETCH_DIR="$DIR"; break
+            fi
+          done < <(find . -name "*.ino" -not -path "./libraries/*" -not -path "./.git/*" | sort)
+          if [ -z "$SKETCH_DIR" ]; then
+            echo "ERROR: no sketch found (an .ino file named the same as its folder)"
+            exit 1
+          fi
+          echo "Sketch folder: $SKETCH_DIR"
+
+          # --- Find the boards in HardwareConfig.h ---
+          HARDWARES=""
+          if [ -f "$SKETCH_DIR/HardwareConfig.h" ]; then
+            HARDWARES=$(grep -E '^\s*#\s*(if|elif|ifdef)\b' "$SKETCH_DIR/HardwareConfig.h" \
+                        | grep -oE 'HARDWARE_V[0-9]+' | sort -u -V | tr '\n' ' ' || true)
+          fi
+          [ -z "$HARDWARES" ] && HARDWARES="DEFAULT"
+          echo "Boards to build: $HARDWARES"
+
+          # --- Optional repo-local libraries ---
+          LIB_ARGS=()
+          [ -d ./libraries ] && LIB_ARGS=(--libraries ./libraries) && echo "Using ./libraries"
+
           mkdir -p ./flash
-          
-          # Detect hardware versions dynamically from source code
-          DETECTED=$(grep -roh "HARDWARE_V[0-9]\+" . | sort -u || true)
-          HARDWARES="HARDWARE_V1 HARDWARE_V2 $DETECTED"
-          HARDWARES=$(echo $HARDWARES | tr ' ' '\n' | sort -u)
-
-          echo "Compiling Hardware Variants:"
-          echo "$HARDWARES"
-
           BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M")
-          OPTIONS_HTML=""
-          FIRST_MANIFEST=""
+          COMMIT=$(git rev-parse --short HEAD)
+          BOARDS_JSON="[]"
 
           for HW in $HARDWARES; do
             LOWER_HW=$(echo "$HW" | tr '[:upper:]' '[:lower:]')
             BIN_NAME="firmware_${LOWER_HW}.bin"
             MANIFEST_NAME="manifest_${LOWER_HW}.json"
-            
-            # Format clean option label (e.g., "Hardware Version V1")
-            HW_LABEL=$(echo "$HW" | sed 's/_/ /g')
-            
+            if [ "$HW" = "DEFAULT" ]; then
+              LABEL="Standard board"
+              FLAGS=()
+            else
+              LABEL="Hardware ${HW#HARDWARE_}"          # e.g. "Hardware V4"
+              # compiler.*.extra_flags ADD -DHARDWARE_Vx on top of the board's
+              # own settings (build.extra_flags would REPLACE them).
+              FLAGS=(--build-property "compiler.cpp.extra_flags=-D$HW"
+                     --build-property "compiler.c.extra_flags=-D$HW")
+            fi
+
             echo "----------------------------------------"
-            echo "Compiling for $HW..."
+            echo "Compiling $REPO_NAME for $LABEL..."
             echo "----------------------------------------"
-            
-            arduino-cli compile --fqbn esp32:esp32:esp32c3 --build-property "build.extra_flags=-D$HW" --output-dir ./build_${LOWER_HW} .
-            
-            # Copy binary directly into the flash folder
-            find ./build_${LOWER_HW} -name "*.ino.merged.bin" -exec cp {} ./flash/$BIN_NAME \;
-            
-            # Clean up build artifact folder
-            rm -rf ./build_${LOWER_HW}
-            
-            # Create matching manifest inside flash folder
+
+            arduino-cli compile --fqbn "$FQBN" "${FLAGS[@]}" "${LIB_ARGS[@]}" \
+              --output-dir "./build_${LOWER_HW}" "$SKETCH_DIR"
+
+            MERGED=$(find "./build_${LOWER_HW}" -name "*.ino.merged.bin" | head -n 1)
+            if [ -z "$MERGED" ]; then
+              echo "ERROR: no merged .bin produced for $HW"
+              exit 1
+            fi
+            cp "$MERGED" "./flash/$BIN_NAME"
+            rm -rf "./build_${LOWER_HW}"
+
+            # ESP Web Tools manifest for this board
             jq -n \
-              --arg name "ESP32-C3 Robot Firmware ($HW)" \
-              --arg version "Build: $BUILD_DATE UTC" \
+              --arg name "$REPO_NAME ($LABEL)" \
+              --arg version "Build $BUILD_DATE UTC ($COMMIT)" \
               --arg bin "$BIN_NAME" \
               '{
                 name: $name,
@@ -74,33 +126,28 @@ jobs:
                 home_assistant_domain: "esp_web_tools",
                 new_install_prompt_erase: false,
                 builds: [
-                  {
-                    chipFamily: "ESP32-C3",
-                    parts: [
-                      { path: $bin, offset: 0 }
-                    ]
-                  }
+                  { chipFamily: "ESP32-C3", parts: [ { path: $bin, offset: 0 } ] }
                 ]
-              }' > ./flash/$MANIFEST_NAME
+              }' > "./flash/$MANIFEST_NAME"
 
-            # Build dropdown option HTML dynamically
-            if [ -z "$FIRST_MANIFEST" ]; then
-              FIRST_MANIFEST="$MANIFEST_NAME"
-              OPTIONS_HTML="${OPTIONS_HTML}        <option value=\"$MANIFEST_NAME\" selected>${HW_LABEL} (Current)</option>\n"
-            else
-              OPTIONS_HTML="${OPTIONS_HTML}        <option value=\"$MANIFEST_NAME\">${HW_LABEL}</option>\n"
-            fi
+            BOARDS_JSON=$(echo "$BOARDS_JSON" | jq \
+              --arg id "$HW" --arg label "$LABEL" --arg manifest "$MANIFEST_NAME" \
+              '. + [{id: $id, label: $label, manifest: $manifest}]')
           done
 
-          # Automatically inject the generated options and default manifest into flash/index.html
-          python3 -c "
-          with open('flash/index.html', 'r') as f:
-              content = f.read()
-          content = content.replace('<!-- OPTIONS_INJECTED_BY_CI -->', '''${OPTIONS_HTML}''')
-          content = content.replace('DEFAULT_MANIFEST_PLACEHOLDER', '${FIRST_MANIFEST}')
-          with open('flash/index.html', 'w') as f:
-              f.write(content)
-          "
+          # Everything the flasher page shows comes from this file
+          jq -n \
+            --arg repo "$REPO_NAME" \
+            --arg repo_url "$REPO_URL" \
+            --arg build_date "$BUILD_DATE" \
+            --arg commit "$COMMIT" \
+            --arg core "esp32 $CORE_VERSION" \
+            --argjson boards "$BOARDS_JSON" \
+            '{repo: $repo, repo_url: $repo_url, build_date: $build_date,
+              commit: $commit, core: $core, boards: $boards}' > ./flash/build-info.json
+
+          echo "build-info.json:"
+          cat ./flash/build-info.json
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
