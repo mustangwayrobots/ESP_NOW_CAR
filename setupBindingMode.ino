@@ -1,14 +1,13 @@
 /**
  * ==============================================================================
- * setupBindingMode.ino (Car Receiver - Universal Ingestion Layout)
+ * setupBindingMode.ino (Car Receiver - Length Validation in Binding Mode)
  * ==============================================================================
  */
 void setupBindingMode(){
   if (DEBUG_MODE) Serial.println("[INIT-BIND] Configuring radio network layers for pairing...");
   
   WiFi.mode(WIFI_STA);
-  WiFi.setTxPower(WIFI_POWER_19_5dBm); // Align TX power during broadcast handshake[cite: 10]
-//  esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_LR); // Enable Long Range mode
+  WiFi.setTxPower(WIFI_POWER_19_5dBm); 
 
   if (esp_now_init() != ESP_OK) {
     Serial.println("[ERR] ESP_Now initialization failed in binding mode!");
@@ -28,15 +27,31 @@ void setupBindingMode(){
   esp_now_add_peer(&peerInfo);
 
   esp_now_register_recv_cb([](const esp_now_recv_info_t *recv_info, const uint8_t *data, int len) {
-    RC_Packet_Structure *incoming = (RC_Packet_Structure*)data;
-    
-    if (incoming->protocolMode == 0 && !ReceiveBindingComplete) {
-      memcpy(capturedRemoteMac, recv_info->src_addr, 6);
-      ReceiveBindingComplete = true; 
+    // Validate packet length before parsing (O-08)
+    if (len >= sizeof(RC_Packet_Structure)) {
+      RC_Packet_Structure *incoming = (RC_Packet_Structure*)data;
       
-      Serial.printf("[COMM-BIND] Controller MAC Whitelisted: %02X:%02X:%02X:%02X:%02X:%02X\n",
-                    capturedRemoteMac[0], capturedRemoteMac[1], capturedRemoteMac[2],
-                    capturedRemoteMac[3], capturedRemoteMac[4], capturedRemoteMac[5]);
+      if (incoming->protocolMode == 0 && !ReceiveBindingComplete) {
+        memcpy(capturedRemoteMac, recv_info->src_addr, 6);
+        ReceiveBindingComplete = true; 
+        
+        Serial.printf("[COMM-BIND] Controller MAC Whitelisted: %02X:%02X:%02X:%02X:%02X:%02X\n",
+                      capturedRemoteMac[0], capturedRemoteMac[1], capturedRemoteMac[2],
+                      capturedRemoteMac[3], capturedRemoteMac[4], capturedRemoteMac[5]);
+        
+        esp_now_peer_info_t unicastPeer = {};
+        memcpy(unicastPeer.peer_addr, capturedRemoteMac, 6);
+        unicastPeer.channel = WIFI_CHANNEL;
+        unicastPeer.ifidx = WIFI_IF_STA;
+        unicastPeer.encrypt = false;
+        esp_now_add_peer(&unicastPeer);
+      }
+      
+      if (incoming->protocolMode == 3 && ReceiveBindingComplete) {
+        if (memcmp(recv_info->src_addr, capturedRemoteMac, 6) == 0) {
+          HandshakeConfirmed = true;
+        }
+      }
     }
   });  
 

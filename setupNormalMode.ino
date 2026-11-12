@@ -1,15 +1,13 @@
 /**
  * ==============================================================================
- * setupNormalMode.ino (Car Receiver - Crash-Proof NVS, Motors & Native Servo)
+ * setupNormalMode.ino (Car Receiver - Authenticated Packets & Length Validation)
  * ==============================================================================
  */
 void setupNormalMode(){
   if (DEBUG_MODE) Serial.println("[INIT-NORM] Entering drive configurations setup sequence...");
 
   WiFi.mode(WIFI_STA);
-  WiFi.setTxPower(WIFI_POWER_19_5dBm); // Mitigate classroom RF congestion across 20 active cars
-//  esp_wifi_set_protocol(WIFI_IF_STA, WIFI_PROTOCOL_LR); // Enable Long Range mode
-
+  WiFi.setTxPower(WIFI_POWER_19_5dBm); 
 
   uint8_t remoteMac[6];
   if (!readStoredMac(remoteMac)) {
@@ -26,6 +24,8 @@ void setupNormalMode(){
     setupBindingMode();
     return;
   }
+  
+  memcpy(cachedRemoteMac, remoteMac, 6);
   
   uint8_t calculatedChannel = 1;
   uint8_t macRemainder = remoteMac[5] % 3; 
@@ -56,21 +56,24 @@ void setupNormalMode(){
     if (DEBUG_MODE) Serial.println("[INIT-NORM] Exclusive STA communication pipe established.");
   }
 
+  // Secure Receive Callback with Length Validation (O-08) and Sender Authentication (O-02)
   esp_now_register_recv_cb([](const esp_now_recv_info_t *recv_info, const uint8_t *data, int len) {
-    RC_Packet_Structure *incoming = (RC_Packet_Structure*)data;
-    if (incoming->protocolMode == 1) { 
-      memcpy(&ReceivingData, data, min(len, (int)sizeof(ReceivingData)));
-      NewDataFlag = true;
+    if (len >= sizeof(RC_Packet_Structure)) {
+      RC_Packet_Structure *incoming = (RC_Packet_Structure*)data;
+      
+      // Verify packet is normal drive mode AND sent exclusively by our paired controller
+      if (incoming->protocolMode == 1 && memcmp(recv_info->src_addr, cachedRemoteMac, 6) == 0) { 
+        memcpy(&ReceivingData, data, sizeof(RC_Packet_Structure));
+        NewDataFlag = true;
+      }
     }
   });
 
-  // --- HARDWARE PWM MOTOR BRIDGES (5kHz, 8-bit) ---
   ledcAttach(A1Pin, 5000, 8);  
   ledcAttach(A2Pin, 5000, 8);  
   ledcAttach(B1Pin, 5000, 8);  
   ledcAttach(B2Pin, 5000, 8);  
 
-  // --- NATIVE SERVO FLIPPER SETUP (50Hz, 16-bit) ---
   ledcAttach(WeaponPin, 50, 16);
   uint32_t initialDuty = map(0, 0, 180, 3276, 6553); 
   ledcWrite(WeaponPin, initialDuty);
