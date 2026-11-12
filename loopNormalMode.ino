@@ -1,39 +1,56 @@
 /**
  * ==============================================================================
- * loopNormalMode.ino (Car Receiver - High-Responsiveness, 250ms Failsafe & Telemetry)
+ * loopNormalMode.ino (Car Receiver - Calibrated Averaged Telemetry & 250ms Failsafe)
  * ==============================================================================
  */
 void loopNormalMode(){
   static uint32_t rxPreviousMillis = 0; 
   static uint32_t lastTransmitTime = 0;
-  static bool initialTelemetrySent = false; // Tracks if we've sent the welcome telemetry packet
+  static bool initialTelemetrySent = false; 
+  static bool prevLinkedState = false;
   
-  // --- 1. TELEMETRY BROADCAST ENGINE (Battery Check) ---
-  // Sends immediately upon connecting/booting, then every 5 seconds thereafter
+  // Determine current link status based on the 250ms timeout window
+  bool isLinked = (millis() - rxPreviousMillis) <= 250;
+
+  // Detect link re-establishment (rising edge) to trigger an immediate telemetry packet
+  if (isLinked && !prevLinkedState) {
+    initialTelemetrySent = false;
+  }
+  prevLinkedState = isLinked;
+
+  // --- 1. TELEMETRY BROADCAST ENGINE (Calibrated Battery Check - O-11) ---
   bool sendTelemetry = false;
   
-  if (!initialTelemetrySent) {
-    initialTelemetrySent = true;
-    sendTelemetry = true;
-  } else if ((millis() - lastTransmitTime) > 5000) {
-    sendTelemetry = true;
+  if (isLinked) {
+    if (!initialTelemetrySent) {
+      initialTelemetrySent = true;
+      sendTelemetry = true;
+      lastTransmitTime = millis();
+    } else if ((millis() - lastTransmitTime) > 5000) {
+      sendTelemetry = true;
+      lastTransmitTime = millis();
+    }
   }
 
   if (sendTelemetry) {
-    lastTransmitTime = millis();
     SendingData.protocolMode = 1; 
 
-    uint32_t rawAdc = analogRead(BATTERY_ADC_PIN);
-    uint32_t pinVoltageMv = (rawAdc * 3300) / 4095;
-    uint32_t calculatedBatteryMv = pinVoltageMv * 2.0; 
+    // O-11 Fix: Use analogReadMilliVolts() with 16-sample averaging to filter out motor noise,
+    // sag, and correct for ESP32-C3 ADC non-linearity using factory eFuse calibration.
+    uint32_t sumMv = 0;
+    const int sampleCount = 16;
+    for (int i = 0; i < sampleCount; i++) {
+      sumMv += analogReadMilliVolts(BATTERY_ADC_PIN);
+      delayMicroseconds(500); // Short window between samples
+    }
+    uint32_t avgPinVoltageMv = sumMv / sampleCount;
+    uint32_t calculatedBatteryMv = avgPinVoltageMv * 2; // 2:1 ratio from 10k/10k divider
 
-    // Cap the displayed voltage at 4200mV (4.2V) max to keep readings realistic for a 1S LiPo
+    // Cap displayed voltage at 4200mV (4.2V) max to keep readings realistic for a 1S LiPo
     SendingData.battery = constrain(calculatedBatteryMv, 0, 4200);
 
-    uint8_t remoteMac[6];
-    if (readStoredMac(remoteMac)) {
-      esp_now_send(remoteMac, (uint8_t *)&SendingData, sizeof(SendingData));
-    }
+    // Send directly using the RAM-cached MAC address (Zero NVS flash overhead)
+    esp_now_send(cachedRemoteMac, (uint8_t *)&SendingData, sizeof(SendingData));
   }
 
   // --- 2. PACKET INGESTION, DEADBAND & SAFETY CLAMPS ---
@@ -76,15 +93,9 @@ void loopNormalMode(){
   }
 
   // --- 3. CONNECTION STATUS & TIMEOUT SAFETY (250ms Failsafe Cutoff) ---
-  // Perfectly matches controller 20ms active / 100ms heartbeat pacing.
-  // If no packets arrive for 250ms, instantly kills motors and slow-blinks LED.
-  if((millis() - rxPreviousMillis) > 250){ 
+  if(!isLinked){ 
     ledcWrite(A1Pin, 0); ledcWrite(A2Pin, 0);
     ledcWrite(B1Pin, 0); ledcWrite(B2Pin, 0);      
-
-    // Reset the initial telemetry flag on link loss so that when it re-links, 
-    // it immediately spits out a fresh battery reading again!
-    initialTelemetrySent = false; 
 
     // Slow blink routine (500ms interval) indicating link loss / searching
     static unsigned long lastBlinkTime = 0;
