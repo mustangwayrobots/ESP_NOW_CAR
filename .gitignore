@@ -1,6 +1,5 @@
 # Directories not part of Arduino IDE coding workspace
 build/
-flash/
 images/
 
 # Local Arduino build outputs & metadata
