@@ -3,191 +3,484 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Firmware Flasher | Robot Portal</title>
-  
+  <title>Firmware Flasher | Mustang Way Robots</title>
+  <meta name="description" content="Flash robot firmware straight from your browser over USB." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%2338bdf8' d='M13 2 4 14h6l-1 8 9-12h-6z'/></svg>" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+
   <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+
+  <!--
+    ==========================================================================
+    Generic web flasher page. Copy this file unchanged into any project's
+    flash/ folder. Everything project-specific (repo name, boards, build
+    date) comes from flash/build-info.json, which .github/workflows/build.yml
+    writes on every build.
+    ==========================================================================
+  -->
 
   <style>
     :root {
-      --bg-dark: #050b14;
-      --card-bg: #0c1524;
-      --accent-blue: #38bdf8;
-      --accent-hover: #0284c7;
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --border-color: #1e293b;
-      --btn-secondary-bg: #1e293b;
+      --bg: #050b14;
+      --bg-2: #08111f;
+      --card: #0c1524;
+      --card-2: #101c30;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --accent-glow: rgba(56, 189, 248, 0.35);
+      --ok: #34d399;
+      --warn: #fbbf24;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --dim: #64748b;
+      --border: #1e293b;
+      --border-2: #27364d;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      background-color: var(--bg-dark);
-      color: var(--text-main);
-      font-family: 'Inter', sans-serif;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(56, 189, 248, 0.14), transparent 70%),
+        linear-gradient(rgba(56, 189, 248, 0.035) 1px, transparent 1px) 0 0 / 32px 32px,
+        linear-gradient(90deg, rgba(56, 189, 248, 0.035) 1px, transparent 1px) 0 0 / 32px 32px,
+        var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 2.5rem 1rem;
+      padding: 1.5rem 1rem 2rem;
     }
 
-    header { text-align: center; margin-bottom: 2rem; max-width: 800px; }
+    a { color: var(--accent); }
+
+    /* ---------- top bar ---------- */
+    .topbar {
+      width: 100%;
+      max-width: 640px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .pill-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-decoration: none;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.9rem;
+      border-radius: 999px;
+      transition: color .15s, border-color .15s;
+    }
+    .pill-link:hover { color: var(--text); border-color: var(--border-2); }
+    .pill-link svg { width: 14px; height: 14px; }
+
+    /* ---------- header ---------- */
+    header { text-align: center; margin-bottom: 2rem; max-width: 640px; }
+
+    .bolt {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 1.25rem;
+      display: grid;
+      place-items: center;
+      border-radius: 20px;
+      background: linear-gradient(145deg, rgba(56,189,248,0.18), rgba(56,189,248,0.04));
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      box-shadow: 0 0 40px var(--accent-glow), inset 0 0 20px rgba(56,189,248,0.08);
+      animation: pulse 3.2s ease-in-out infinite;
+    }
+    .bolt svg { width: 38px; height: 38px; filter: drop-shadow(0 0 8px var(--accent)); }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 28px rgba(56,189,248,0.25), inset 0 0 20px rgba(56,189,248,0.08); }
+      50%      { box-shadow: 0 0 52px rgba(56,189,248,0.45), inset 0 0 20px rgba(56,189,248,0.12); }
+    }
+    @media (prefers-reduced-motion: reduce) { .bolt { animation: none; } }
+
+    .eyebrow {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 4px;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 0.6rem;
+    }
 
     h1 {
       font-family: 'Orbitron', sans-serif;
-      font-size: 2.5rem;
+      font-size: clamp(1.7rem, 6vw, 2.6rem);
       font-weight: 900;
-      color: var(--accent-blue);
       letter-spacing: 2px;
       text-transform: uppercase;
-      margin-bottom: 0.5rem;
+      line-height: 1.15;
+      background: linear-gradient(180deg, #ffffff 0%, #bae6fd 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      margin-bottom: 0.75rem;
+      word-break: break-word;
     }
 
-    p.subtitle { color: var(--text-muted); font-size: 1.1rem; margin-bottom: 1.5rem; }
+    .subtitle { color: var(--muted); font-size: 1rem; }
 
-    .nav-bar { width: 100%; max-width: 600px; display: flex; justify-content: flex-start; margin-bottom: 1.5rem; }
+    /* ---------- card ---------- */
+    .card {
+      width: 100%;
+      max-width: 640px;
+      background: linear-gradient(180deg, var(--card-2), var(--card));
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+      overflow: hidden;
+    }
 
-    .back-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
+    .build-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1.25rem;
+      justify-content: center;
+      padding: 0.75rem 1.25rem;
+      background: rgba(5, 11, 20, 0.55);
+      border-bottom: 1px solid var(--border);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--dim);
+    }
+    .build-strip span b { color: var(--muted); font-weight: 500; }
+    .build-strip .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); margin-right: 6px; box-shadow: 0 0 8px var(--ok); vertical-align: 1px; }
+    .build-strip.missing .dot { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+
+    .steps { padding: 2rem 2rem 2.25rem; display: grid; gap: 1.75rem; }
+
+    .step { display: grid; grid-template-columns: 36px 1fr; gap: 1rem; align-items: start; }
+
+    .step-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
       font-family: 'Orbitron', sans-serif;
-      font-size: 0.75rem;
       font-weight: 800;
-      text-decoration: none;
-      background-color: var(--btn-secondary-bg);
-      color: var(--text-main);
-      border: 1px solid var(--border-color);
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
-      text-transform: uppercase;
-    }
-
-    .flasher-card {
-      background-color: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 2.5rem;
-      width: 100%;
-      max-width: 600px;
-      text-align: center;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
-    }
-
-    .instructions { color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 2rem; }
-
-    .build-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background-color: rgba(56, 189, 248, 0.1);
+      font-size: 0.9rem;
+      color: var(--accent);
+      background: rgba(56, 189, 248, 0.1);
       border: 1px solid rgba(56, 189, 248, 0.3);
-      color: var(--accent-blue);
-      font-family: 'Orbitron', monospace;
-      font-size: 0.7rem;
-      font-weight: 700;
-      padding: 6px 12px;
-      border-radius: 6px;
-      text-transform: uppercase;
-      margin-bottom: 1.5rem;
     }
 
-    .hardware-group { margin-bottom: 1.5rem; text-align: left; }
-
-    .hardware-group label {
-      display: block;
-      color: var(--text-muted);
-      font-size: 0.8rem;
-      margin-bottom: 0.5rem;
+    .step h2 {
       font-family: 'Orbitron', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
       text-transform: uppercase;
+      margin: 0.15rem 0 0.45rem;
     }
 
-    .hardware-select {
-      width: 100%;
-      padding: 0.75rem;
-      background-color: var(--btn-secondary-bg);
-      color: var(--text-main);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      font-family: 'Inter', sans-serif;
-      font-size: 0.95rem;
-      outline: none;
-      cursor: pointer;
+    .step p { color: var(--muted); font-size: 0.92rem; line-height: 1.55; }
+
+    .select-wrap { position: relative; margin-top: 0.75rem; }
+    .select-wrap::after {
+      content: "";
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      width: 8px;
+      height: 8px;
+      border-right: 2px solid var(--muted);
+      border-bottom: 2px solid var(--muted);
+      transform: translateY(-70%) rotate(45deg);
+      pointer-events: none;
     }
+
+    select {
+      width: 100%;
+      appearance: none;
+      padding: 0.85rem 2.5rem 0.85rem 1rem;
+      background: var(--bg-2);
+      color: var(--text);
+      border: 1px solid var(--border-2);
+      border-radius: 10px;
+      font: 500 0.95rem 'Inter', sans-serif;
+      cursor: pointer;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(56,189,248,0.2); }
+    select:disabled { cursor: not-allowed; opacity: 0.6; }
+
+    .install-row { margin-top: 0.9rem; }
 
     .flash-btn {
-      background-color: var(--accent-blue);
-      color: var(--bg-dark);
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(180deg, var(--accent), var(--accent-2));
+      color: #031120;
       font-family: 'Orbitron', sans-serif;
       font-size: 0.85rem;
       font-weight: 800;
-      padding: 0.8rem 1.5rem;
-      border-radius: 8px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 0.95rem 1.6rem;
+      border-radius: 10px;
       border: none;
       cursor: pointer;
-      text-transform: uppercase;
+      box-shadow: 0 6px 24px var(--accent-glow);
+      transition: transform .1s, box-shadow .15s, filter .15s;
+    }
+    .flash-btn:hover { filter: brightness(1.08); box-shadow: 0 8px 32px rgba(56,189,248,0.5); }
+    .flash-btn:active { transform: translateY(1px); }
+    .flash-btn svg { width: 18px; height: 18px; }
+
+    .flash-btn.waiting {
+      background: var(--border);
+      color: var(--dim);
+      box-shadow: none;
+      cursor: not-allowed;
+      filter: none;
     }
 
-    footer { margin-top: auto; padding-top: 4rem; color: var(--text-muted); font-size: 0.85rem; text-align: center; }
+    .notice {
+      margin-top: 0.9rem;
+      padding: 0.8rem 1rem;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      background: rgba(251, 191, 36, 0.08);
+      color: #fde68a;
+    }
+
+    /* Until ESP Web Tools has loaded and checked the browser, show only the button */
+    esp-web-install-button:not(:defined) [slot="unsupported"],
+    esp-web-install-button:not(:defined) [slot="not-allowed"] { display: none; }
+
+    .tips {
+      margin: 0 2rem 2rem;
+      padding: 1rem 1.25rem;
+      border-radius: 12px;
+      background: rgba(5, 11, 20, 0.5);
+      border: 1px solid var(--border);
+    }
+    .tips summary {
+      cursor: pointer;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .tips ul { margin: 0.9rem 0 0.2rem 1.1rem; color: var(--muted); font-size: 0.88rem; line-height: 1.7; }
+
+    footer {
+      margin-top: auto;
+      padding-top: 3rem;
+      color: var(--dim);
+      font-size: 0.8rem;
+      text-align: center;
+      line-height: 1.8;
+    }
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+
+    @media (max-width: 520px) {
+      .steps { padding: 1.5rem 1.25rem 1.75rem; }
+      .tips { margin: 0 1.25rem 1.5rem; }
+      .topbar { margin-bottom: 1.75rem; }
+    }
   </style>
 </head>
 <body>
 
+  <nav class="topbar">
+    <a href="https://mustangwayrobots.github.io/" class="pill-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+      Main Portal
+    </a>
+    <a id="repo-link" href="https://github.com/mustangwayrobots" class="pill-link" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1.1-.7.1-.7.1-.7 1.2.1 1.9 1.3 1.9 1.3 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.3 4.7 18.3 5 18.3 5c.6 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .5z"/></svg>
+      Source Code
+    </a>
+  </nav>
+
   <header>
-    <h1>Firmware Flasher</h1>
-    <p class="subtitle">Direct Browser Microcontroller Flasher</p>
+    <div class="bolt" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path fill="#38bdf8" d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>
+    </div>
+    <div class="eyebrow">Firmware Flasher</div>
+    <h1 id="project-name">Robot Firmware</h1>
+    <p class="subtitle">Install the latest firmware straight from your browser over USB.</p>
   </header>
 
-  <div class="nav-bar">
-    <a href="https://mustangwayrobots.github.io/" class="back-btn">
-      ← Back to Main Portal
-    </a>
-  </div>
-
-  <main class="flasher-card">
-    <div id="build-info-badge" class="build-badge">
-      <span>Select Hardware Version</span>
+  <main class="card">
+    <div id="build-strip" class="build-strip missing">
+      <span><i class="dot"></i><b id="build-status">Loading build info…</b></span>
     </div>
 
-    <!-- Hardware Version Selector Dropdown -->
-    <div class="hardware-group">
-      <label for="hardware-select">Robot Hardware Version:</label>
-      <select id="hardware-select" class="hardware-select" onchange="updateManifest()">
-                <option value="manifest_hardware_v2.json" selected>HARDWARE V2</option>
-        <option value="manifest_hardware_v3.json">HARDWARE V3</option>
-        <option value="manifest_hardware_v4.json">HARDWARE V4</option>
+    <div class="steps">
+      <section class="step">
+        <div class="step-num">1</div>
+        <div>
+          <h2>Choose your board</h2>
+          <p>Pick the hardware version printed on your board.</p>
+          <div class="select-wrap">
+            <select id="hardware-select" disabled aria-label="Hardware version">
+              <option value="">Loading…</option>
+            </select>
+          </div>
+        </div>
+      </section>
 
-      </select>
+      <section class="step">
+        <div class="step-num">2</div>
+        <div>
+          <h2>Plug it in</h2>
+          <p>Connect the board to this computer with a USB-C <em>data</em> cable. Close Arduino IDE's Serial Monitor if it's open.</p>
+        </div>
+      </section>
+
+      <section class="step">
+        <div class="step-num">3</div>
+        <div>
+          <h2>Install</h2>
+          <p>Click install, pick the board's port in the pop-up, and wait for it to finish. Your saved pairing and settings are kept.</p>
+          <div class="install-row">
+            <esp-web-install-button id="install-btn">
+              <button slot="activate" class="flash-btn">
+                <svg viewBox="0 0 24 24"><path fill="currentColor" d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>
+                Install Firmware
+              </button>
+              <div slot="unsupported" class="notice">
+                This browser can't talk to USB devices. Please open this page in <b>Google Chrome</b> or <b>Microsoft Edge</b> on a laptop or desktop computer.
+              </div>
+              <div slot="not-allowed" class="notice">
+                USB access needs a secure page. Open this page from its <b>https://</b> GitHub Pages address.
+              </div>
+            </esp-web-install-button>
+            <button id="wait-btn" class="flash-btn waiting" type="button" disabled>
+              <svg viewBox="0 0 24 24"><path fill="currentColor" d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>
+              Choose a board first
+            </button>
+          </div>
+        </div>
+      </section>
     </div>
 
-    <p class="instructions">
-      Connect your robot board via USB, select your correct hardware version above, and click install. Stored settings and NVS memory will be preserved.
-    </p>
-
-    <!-- ESP Web Tools Install Button Component (manifest attribute populated dynamically by CI) -->
-    <esp-web-install-button id="install-btn" manifest="manifest_hardware_v2.json">
-      <button slot="activate" class="flash-btn">
-        ⚡ Install Firmware
-      </button>
-    </esp-web-install-button>
+    <details class="tips">
+      <summary>Having trouble?</summary>
+      <ul>
+        <li>No port in the list? Try another cable. Many USB cables only charge.</li>
+        <li>Still nothing? Hold the <b>BOOT</b> button, tap <b>RESET</b>, release <b>BOOT</b>, then try again.</li>
+        <li>After it finishes, press <b>RESET</b> or unplug and replug the board.</li>
+        <li>Wrong board version picked? Just flash again with the right one.</li>
+      </ul>
+    </details>
   </main>
 
   <footer>
-    &copy; Robot Engineering Portal
+    <div>Built by <a href="https://mustangwayrobots.github.io/">Mustang Way Robots</a></div>
+    <div>Powered by <a href="https://esphome.github.io/esp-web-tools/" target="_blank" rel="noopener">ESP Web Tools</a></div>
   </footer>
 
   <script>
-    function updateManifest() {
-      const select = document.getElementById('hardware-select');
-      const installButton = document.getElementById('install-btn');
-      installButton.setAttribute('manifest', select.value);
+    // Turn "ESP_NOW_CAR" into "ESP NOW CAR"
+    function prettyName(repo) {
+      return String(repo || '').replace(/[_-]+/g, ' ').trim();
     }
+
+    // Fallback repo name from the GitHub Pages address: user.github.io/<repo>/flash/
+    function repoFromUrl() {
+      const parts = location.pathname.split('/').filter(Boolean);
+      return parts.length > 1 ? parts[0] : '';
+    }
+
+    const select    = document.getElementById('hardware-select');
+    const installEl = document.getElementById('install-btn');
+    const waitBtn   = document.getElementById('wait-btn');
+    const stripEl   = document.getElementById('build-strip');
+
+    function setReady(manifest) {
+      if (manifest) {
+        installEl.setAttribute('manifest', manifest);
+        installEl.style.display = '';
+        waitBtn.style.display = 'none';
+      } else {
+        installEl.removeAttribute('manifest');
+        installEl.style.display = 'none';
+        waitBtn.style.display = '';
+      }
+    }
+
+    function setProject(repo, repoUrl) {
+      const name = prettyName(repo) || 'Robot Firmware';
+      document.getElementById('project-name').textContent = name;
+      document.title = name + ' | Firmware Flasher';
+      if (repoUrl) document.getElementById('repo-link').href = repoUrl;
+    }
+
+    select.addEventListener('change', () => setReady(select.value));
+    setReady('');
+
+    fetch('build-info.json', { cache: 'no-store' })
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(info => {
+        setProject(info.repo, info.repo_url);
+
+        stripEl.classList.remove('missing');
+        stripEl.innerHTML = '';
+        const items = [
+          ['<i class="dot"></i>Built', info.build_date + ' UTC'],
+          ['Commit', info.commit],
+          ['Core', info.core]
+        ];
+        for (const [k, v] of items) {
+          if (!v) continue;
+          const s = document.createElement('span');
+          s.innerHTML = k + ' <b></b>';
+          s.querySelector('b').textContent = v;
+          stripEl.appendChild(s);
+        }
+
+        const boards = info.boards || [];
+        select.innerHTML = '';
+        if (boards.length !== 1) {
+          const ph = document.createElement('option');
+          ph.value = '';
+          ph.textContent = 'Select hardware version…';
+          select.appendChild(ph);
+        }
+        for (const b of boards) {
+          const o = document.createElement('option');
+          o.value = b.manifest;
+          o.textContent = b.label;
+          select.appendChild(o);
+        }
+        select.disabled = boards.length === 0;
+        setReady(boards.length === 1 ? boards[0].manifest : '');
+      })
+      .catch(() => {
+        setProject(repoFromUrl(), '');
+        document.getElementById('build-status').textContent = 'No firmware build found yet';
+        select.innerHTML = '<option value="">No builds available</option>';
+      });
   </script>
 </body>
 </html>
