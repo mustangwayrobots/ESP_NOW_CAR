@@ -1,6 +1,6 @@
 {
   "name": "ESP_NOW_CAR (Hardware V3)",
-  "version": "Build 2026-11-13 01:14 UTC (0d8c5c0)",
+  "version": "Build 2026-11-13 01:31 UTC (f4c826f)",
   "home_assistant_domain": "esp_web_tools",
   "new_install_prompt_erase": true,
   "builds": [
