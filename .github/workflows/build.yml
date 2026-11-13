@@ -9,6 +9,11 @@ name: Compile and Deploy Firmware
 #                 (#if / #elif / #ifdef lines). No HardwareConfig.h, or no
 #                 HARDWARE_Vx in it = one build with no board flag.
 #   - libraries:  a libraries/ folder in the repo is used if there is one
+#
+# The firmware is published as separate pieces (bootloader, partition table,
+# boot_app0, app), each flashed at its own address, exactly like Arduino IDE.
+# A single merged file would also overwrite the NVS area between them and
+# wipe the saved pairing on every web flash.
 # ===========================================================================
 
 on:
@@ -87,8 +92,8 @@ jobs:
 
           for HW in $HARDWARES; do
             LOWER_HW=$(echo "$HW" | tr '[:upper:]' '[:lower:]')
-            BIN_NAME="firmware_${LOWER_HW}.bin"
             MANIFEST_NAME="manifest_${LOWER_HW}.json"
+            BUILD_DIR="/tmp/build_${LOWER_HW}"     # outside the repo, so it is never published
             if [ "$HW" = "DEFAULT" ]; then
               LABEL="Standard board"
               FLAGS=()
@@ -105,28 +110,45 @@ jobs:
             echo "----------------------------------------"
 
             arduino-cli compile --fqbn "$FQBN" "${FLAGS[@]}" "${LIB_ARGS[@]}" \
-              --output-dir "./build_${LOWER_HW}" "$SKETCH_DIR"
+              --build-path "$BUILD_DIR" "$SKETCH_DIR"
 
-            MERGED=$(find "./build_${LOWER_HW}" -name "*.ino.merged.bin" | head -n 1)
-            if [ -z "$MERGED" ]; then
-              echo "ERROR: no merged .bin produced for $HW"
+            # --- Firmware pieces and addresses, from the core's flash_args ---
+            # (lines like "0x8000 Sketch.ino.partitions.bin")
+            if [ ! -f "$BUILD_DIR/flash_args" ]; then
+              echo "ERROR: no flash_args produced for $HW"
               exit 1
             fi
-            cp "$MERGED" "./flash/$BIN_NAME"
-            rm -rf "./build_${LOWER_HW}"
+            PARTS_JSON="[]"
+            while read -r OFFSET FILE; do
+              case "$OFFSET" in 0x*) ;; *) continue ;; esac   # skip the settings line
+              if [ ! -f "$BUILD_DIR/$FILE" ]; then
+                echo "ERROR: $FILE listed in flash_args but not built for $HW"
+                exit 1
+              fi
+              PART_NAME="${LOWER_HW}_$(echo "$FILE" | sed -E 's/^.*\.ino\.bin$/app.bin/; s/^.*\.ino\.//')"   # e.g. hardware_v2_bootloader.bin
+              cp "$BUILD_DIR/$FILE" "./flash/$PART_NAME"
+              echo "  $OFFSET  $PART_NAME"
+              PARTS_JSON=$(echo "$PARTS_JSON" | jq --arg p "$PART_NAME" --argjson o "$((OFFSET))" \
+                '. + [{path: $p, offset: $o}]')
+            done < "$BUILD_DIR/flash_args"
+            if [ "$(echo "$PARTS_JSON" | jq length)" -lt 2 ]; then
+              echo "ERROR: firmware pieces missing for $HW"
+              exit 1
+            fi
+            rm -rf "$BUILD_DIR"
 
             # ESP Web Tools manifest for this board
             jq -n \
               --arg name "$REPO_NAME ($LABEL)" \
               --arg version "Build $BUILD_DATE UTC ($COMMIT)" \
-              --arg bin "$BIN_NAME" \
+              --argjson parts "$PARTS_JSON" \
               '{
                 name: $name,
                 version: $version,
                 home_assistant_domain: "esp_web_tools",
                 new_install_prompt_erase: false,
                 builds: [
-                  { chipFamily: "ESP32-C3", parts: [ { path: $bin, offset: 0 } ] }
+                  { chipFamily: "ESP32-C3", parts: $parts }
                 ]
               }' > "./flash/$MANIFEST_NAME"
 

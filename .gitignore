@@ -1,6 +1,6 @@
 # Directories not part of Arduino IDE coding workspace
 build/
-images/
+build_*/
 
 # Local Arduino build outputs & metadata
 *.hex
