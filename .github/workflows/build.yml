@@ -14,6 +14,9 @@ name: Compile and Deploy Firmware
 # boot_app0, app), each flashed at its own address, exactly like Arduino IDE.
 # A single merged file would also overwrite the NVS area between them and
 # wipe the saved pairing on every web flash.
+# new_install_prompt_erase must stay true: ESP Web Tools then asks
+# "Erase device?" with the box unchecked. If it is false, ESP Web Tools
+# ALWAYS erases the whole chip (our firmware has no Improv Serial).
 # ===========================================================================
 
 on:
@@ -146,7 +149,7 @@ jobs:
                 name: $name,
                 version: $version,
                 home_assistant_domain: "esp_web_tools",
-                new_install_prompt_erase: false,
+                new_install_prompt_erase: true,
                 builds: [
                   { chipFamily: "ESP32-C3", parts: $parts }
                 ]
