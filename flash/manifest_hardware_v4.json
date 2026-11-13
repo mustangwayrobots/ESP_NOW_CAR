@@ -1,6 +1,6 @@
 {
   "name": "ESP_NOW_CAR (Hardware V4)",
-  "version": "Build 2026-11-13 00:25 UTC (f41d244)",
+  "version": "Build 2026-11-13 00:57 UTC (e01bfe4)",
   "home_assistant_domain": "esp_web_tools",
   "new_install_prompt_erase": false,
   "builds": [
@@ -8,8 +8,20 @@
       "chipFamily": "ESP32-C3",
       "parts": [
         {
-          "path": "firmware_hardware_v4.bin",
+          "path": "hardware_v4_bootloader.bin",
           "offset": 0
+        },
+        {
+          "path": "hardware_v4_partitions.bin",
+          "offset": 32768
+        },
+        {
+          "path": "hardware_v4_boot_app0.bin",
+          "offset": 57344
+        },
+        {
+          "path": "hardware_v4_app.bin",
+          "offset": 65536
         }
       ]
     }
