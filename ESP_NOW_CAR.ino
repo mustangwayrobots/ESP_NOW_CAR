@@ -14,6 +14,7 @@
   #define HARDWARE_V2
 #endif
 #include "HardwareConfig.h" 
+#include "Protocol.h"        // Packet layout shared with the controller (keep both copies identical)
 
 Preferences nvStorage; 
 
@@ -22,18 +23,13 @@ const bool DEBUG_MODE = true;
 bool NormalMode                     = true;
 volatile bool NewDataFlag           = false; 
 volatile bool ReceiveBindingComplete = false; // Set by the binding receive callback when a controller is captured
-volatile bool HandshakeConfirmed    = false;  // Set true when controller confirms receipt (mode 3)
-
-struct __attribute__((packed)) RC_Packet_Structure {
-  uint8_t protocolMode; // 0 = Bind Request, 1 = Normal Drive, 2 = Bind Acknowledgement, 3 = Bind Confirmed
-  int motor_A1; int motor_A2;
-  int motor_B1; int motor_B2;
-  int weapon;   int battery;
-};
+volatile bool HandshakeConfirmed    = false;  // Set true when the controller confirms (PKT_BIND_CONFIRM)
+volatile bool MismatchFlag          = false;  // Set when our controller sends a packet in another protocol version
 
 RC_Packet_Structure SendingData;   
 RC_Packet_Structure ReceivingData;  // Written by the radio callback, read by the loop (guard with rxMux)
 uint8_t capturedRemoteMac[6];       // Written once by the binding callback before ReceiveBindingComplete is set
+uint8_t capturedChannel = 0;        // Drive channel asked for in that bind request
 uint8_t cachedRemoteMac[6];        
 
 // Lock shared by the radio callback and the loop, so a packet is never read half-copied
@@ -42,7 +38,8 @@ portMUX_TYPE rxMux = portMUX_INITIALIZER_UNLOCKED;
 void setupNormalMode();   void setupBindingMode();
 void loopNormalMode();    void loopBindingMode();
 bool readStoredMac(uint8_t* macOut);
-bool writeStoredMac(const uint8_t* macIn);
+uint8_t readStoredChannel();
+bool writeStoredPairing(const uint8_t* macIn, uint8_t channel);
 void initStatusLed();
 void setStatusLed(bool on);
 

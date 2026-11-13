@@ -2,15 +2,15 @@
  * ==============================================================================
  * loopBindingMode.ino (Car Receiver - Handshake Loop)
  * ==============================================================================
- * 1. Wait up to 60 s for a controller's bind request (mode 0).
- * 2. Once captured, send acknowledgements (mode 2) every 100 ms and wait
- *    up to 15 s for the controller's confirmation (mode 3).
- * 3. Confirmed: save the controller MAC and restart into Normal Mode.
+ * 1. Wait up to 60 s for a controller's bind request (PKT_BIND_REQUEST).
+ * 2. Once captured, send acknowledgements (PKT_BIND_ACK) every 100 ms and wait
+ *    up to 15 s for the controller's confirmation (PKT_BIND_CONFIRM).
+ * 3. Confirmed: save the controller MAC and drive channel, restart into Normal Mode.
  * Either timeout restarts the car; the old pairing (if any) stays saved.
  */
 const unsigned long BIND_WAIT_MS      = 60000;  // wait this long for a bind request
-const unsigned long HANDSHAKE_MS      = 15000;  // after capture, wait this long for mode 3
-const unsigned long ACK_SEND_MS       = 100;    // acknowledgement repeat (mode 2)
+const unsigned long HANDSHAKE_MS      = 15000;  // after capture, wait this long for the confirmation
+const unsigned long ACK_SEND_MS       = 100;    // acknowledgement repeat
 const unsigned long BIND_LED_TOGGLE_MS = 50;    // fast blink = Binding Mode
 
 void loopBindingMode(){
@@ -39,13 +39,13 @@ void loopBindingMode(){
     captureTime = millis();
     if (captureTime == 0) captureTime = 1;   // 0 means "not captured"
 
-    Serial.printf("[COMM-BIND] Controller MAC captured: %02X:%02X:%02X:%02X:%02X:%02X\n",
+    Serial.printf("[COMM-BIND] Controller MAC captured: %02X:%02X:%02X:%02X:%02X:%02X (drive channel %d)\n",
                   capturedRemoteMac[0], capturedRemoteMac[1], capturedRemoteMac[2],
-                  capturedRemoteMac[3], capturedRemoteMac[4], capturedRemoteMac[5]);
+                  capturedRemoteMac[3], capturedRemoteMac[4], capturedRemoteMac[5], capturedChannel);
 
     esp_now_peer_info_t unicastPeer = {};
     memcpy(unicastPeer.peer_addr, capturedRemoteMac, 6);
-    unicastPeer.channel = WIFI_CHANNEL;
+    unicastPeer.channel = BINDING_CHANNEL;
     unicastPeer.ifidx   = WIFI_IF_STA;
     unicastPeer.encrypt = false;
     esp_now_add_peer(&unicastPeer);
@@ -61,20 +61,20 @@ void loopBindingMode(){
     ESP.restart();
   }
 
-  // Send acknowledgement (mode 2) to the captured controller until it confirms
+  // Send acknowledgement to the captured controller until it confirms
   if (captureTime != 0 && !HandshakeConfirmed && millis() - lastTxTime > ACK_SEND_MS) {
     lastTxTime = millis();
     RC_Packet_Structure ackPacket = {};   // zeroed, no garbage data
-    ackPacket.protocolMode = 2; 
+    setPacketHeader(ackPacket, PKT_BIND_ACK, capturedChannel);   // echo the channel back
     esp_now_send(capturedRemoteMac, (uint8_t *)&ackPacket, sizeof(ackPacket));
   }
 
   // Confirmed: save and restart into Normal Mode
   if (HandshakeConfirmed) {
-    Serial.printf("[SUCCESS] VERIFIED PAIR COMPLETE! Committing address to NVS: %02x:%02x:%02x:%02x:%02x:%02x\n",
+    Serial.printf("[SUCCESS] VERIFIED PAIR COMPLETE! Saving %02x:%02x:%02x:%02x:%02x:%02x, drive channel %d\n",
                   capturedRemoteMac[0], capturedRemoteMac[1], capturedRemoteMac[2],
-                  capturedRemoteMac[3], capturedRemoteMac[4], capturedRemoteMac[5]);
-    writeStoredMac(capturedRemoteMac);   // prints an error if the write fails (N-05)
+                  capturedRemoteMac[3], capturedRemoteMac[4], capturedRemoteMac[5], capturedChannel);
+    writeStoredPairing(capturedRemoteMac, capturedChannel);   // prints an error if the write fails (N-05)
       
     setStatusLed(false); 
     delay(500); 

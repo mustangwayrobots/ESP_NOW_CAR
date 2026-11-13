@@ -1,6 +1,6 @@
 /**
  * ==============================================================================
- * HardwareConfig.h - Multi-Revision Pin & Radio Layout Definitions
+ * HardwareConfig.h - Multi-Revision Pin Layout Definitions
  * ==============================================================================
  * The board is chosen at the top of ESP_NOW_CAR.ino (one line to edit).
  * A build that passes -DHARDWARE_Vx (like the GitHub flasher build) overrides it.
@@ -8,12 +8,14 @@
  * Status LED type, one per board:
  *   STATUS_LED_ACTIVE_LOW  plain LED, ON when the pin is LOW
  *   STATUS_LED_RGB         WS2812 RGB LED (needs rgbLedWrite, not digitalWrite)
+ *
+ * Radio channels are not set here: see Protocol.h (pairing) and the saved
+ * pairing (driving).
  */
 #pragma once
 
 #if defined(HARDWARE_V3)
   #define BOARD_VERSION_STR "ESP32-C3 RC Receiver V3 Layout"
-  #define WIFI_CHANNEL      1
   #define STATUS_LED        8
   #define STATUS_LED_ACTIVE_LOW
   #define A1Pin             1
@@ -26,7 +28,6 @@
 
 #elif defined(HARDWARE_V4)
   #define BOARD_VERSION_STR "ESP32-C3 RC Receiver V4 Layout"
-  #define WIFI_CHANNEL      1
   #define STATUS_LED        10  // WS2812 RGB LED on the ESP32-C3 Zero module
   #define STATUS_LED_RGB
   #define A1Pin             6
@@ -39,7 +40,6 @@
 
 #elif defined(HARDWARE_V2)
   #define BOARD_VERSION_STR "ESP32-C3 RC Receiver V2.0 (Legacy)"
-  #define WIFI_CHANNEL      1
   #define STATUS_LED        8
   #define STATUS_LED_ACTIVE_LOW
   #define A1Pin             1

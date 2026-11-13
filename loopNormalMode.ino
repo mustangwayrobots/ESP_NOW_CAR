@@ -1,19 +1,36 @@
 /**
  * ==============================================================================
- * loopNormalMode.ino (Car Receiver - Calibrated Averaged Telemetry & 250ms Failsafe)
+ * loopNormalMode.ino (Car Receiver - Telemetry Replies & 250ms Failsafe)
  * ==============================================================================
  * Order each pass: 1) take any new packet, 2) work out link status,
- * 3) telemetry, 4) failsafe and LED.
+ * 3) telemetry, 4) firmware mismatch check, 5) failsafe and LED.
+ *
+ * Telemetry doubles as the car's "I'm listening" reply: the controller only
+ * shows CONNECTED while these keep arriving (period in Protocol.h).
  */
-const unsigned long FAILSAFE_TIMEOUT_MS = 250;   // motors stop after this long without a packet
-const unsigned long TELEMETRY_PERIOD_MS = 5000;  // battery report while linked
-const int DEAD_BAND = 15;                         // motor values below this are treated as 0
+const unsigned long FAILSAFE_TIMEOUT_MS  = 250;   // motors stop after this long without a packet
+const unsigned long MISMATCH_REPLY_MS    = 1000;  // on mismatch, tell the controller at most this often
+const unsigned long MISMATCH_SHOW_MS     = 1500;  // keep the mismatch LED pattern this long after the last one
+const unsigned long LED_SLOW_TOGGLE_MS   = 500;   // slow blink = no controller signal
+const unsigned long LED_QUICK_TOGGLE_MS  = 150;   // quick blink = controller has different firmware
+const int DEAD_BAND = 15;                          // motor values below this are treated as 0
+
+// Sends our battery voltage to the paired controller
+void sendTelemetry() {
+  setPacketHeader(SendingData, PKT_TELEMETRY);
+  SendingData.battery = batteryMillivolts();
+  esp_now_send(cachedRemoteMac, (uint8_t *)&SendingData, sizeof(SendingData));
+}
 
 void loopNormalMode(){
   static uint32_t rxPreviousMillis = 0; 
   static bool everReceived = false;          // no "linked" before the first real packet (N-04)
   static uint32_t lastTransmitTime = 0;
   static bool prevLinkedState = false;
+  static uint32_t lastMismatchTime = 0;      // 0 = no mismatch seen
+  static uint32_t lastMismatchReply = 0;
+
+  updateBattery();   // one quick reading every 10 ms (Battery.ino)
 
   // --- 1. PACKET INGESTION, DEADBAND & SAFETY CLAMPS ---
   if (NewDataFlag) {
@@ -64,40 +81,41 @@ void loopNormalMode(){
   bool linkJustCameUp = isLinked && !prevLinkedState;
   prevLinkedState = isLinked;
 
-  // --- 3. TELEMETRY (on link-up, then every 5 s while linked) ---
-  if (isLinked && (linkJustCameUp || (millis() - lastTransmitTime) > TELEMETRY_PERIOD_MS)) {
+  // --- 3. TELEMETRY (on link-up, then every TELEMETRY_PERIOD_MS while linked) ---
+  if (isLinked && (linkJustCameUp || (millis() - lastTransmitTime) >= TELEMETRY_PERIOD_MS)) {
     lastTransmitTime = millis();
-    SendingData.protocolMode = 1; 
-
-    // analogReadMilliVolts() uses the factory eFuse calibration; 16 samples filter motor noise
-    uint32_t sumMv = 0;
-    const int sampleCount = 16;
-    for (int i = 0; i < sampleCount; i++) {
-      sumMv += analogReadMilliVolts(BATTERY_ADC_PIN);
-      delayMicroseconds(500); // Short window between samples
-    }
-    uint32_t avgPinVoltageMv = sumMv / sampleCount;
-    uint32_t calculatedBatteryMv = avgPinVoltageMv * 2; // 2:1 ratio from 10k/10k divider
-
-    // Cap displayed voltage at 4200mV (4.2V) max to keep readings realistic for a 1S LiPo
-    SendingData.battery = constrain(calculatedBatteryMv, 0, 4200);
-
-    // Send directly using the RAM-cached MAC address (Zero NVS flash overhead)
-    esp_now_send(cachedRemoteMac, (uint8_t *)&SendingData, sizeof(SendingData));
+    sendTelemetry();
   }
 
-  // --- 4. CONNECTION STATUS & TIMEOUT SAFETY (250ms Failsafe Cutoff) ---
+  // --- 4. FIRMWARE MISMATCH (our controller is sending another protocol version) ---
+  // Reply with one of our own packets now and then, so a controller with a
+  // different version can see the mismatch and show it on its screen.
+  if (MismatchFlag) {
+    MismatchFlag = false;
+    lastMismatchTime = millis();
+    if (lastMismatchTime == 0) lastMismatchTime = 1;   // 0 means "none seen"
+    if (millis() - lastMismatchReply > MISMATCH_REPLY_MS) {
+      lastMismatchReply = millis();
+      Serial.printf("[WARN] Controller firmware uses a different protocol version (this car is v%d). Update both.\n",
+                    PROTOCOL_VERSION);
+      sendTelemetry();
+    }
+  }
+  bool mismatchRecent = lastMismatchTime != 0 && (millis() - lastMismatchTime) < MISMATCH_SHOW_MS;
+
+  // --- 5. CONNECTION STATUS & TIMEOUT SAFETY (250ms Failsafe Cutoff) ---
   if (!isLinked) { 
     ledcWrite(A1Pin, 0); ledcWrite(A2Pin, 0);
     ledcWrite(B1Pin, 0); ledcWrite(B2Pin, 0);      
 
-    // Slow blink (500ms) = no controller signal
+    // Slow blink = no controller signal. Quick blink = controller has different firmware.
     static unsigned long lastBlinkTime = 0;
-    static bool slowLedState = false;
-    if (millis() - lastBlinkTime > 500) {
+    static bool blinkLedState = false;
+    unsigned long toggleMs = mismatchRecent ? LED_QUICK_TOGGLE_MS : LED_SLOW_TOGGLE_MS;
+    if (millis() - lastBlinkTime > toggleMs) {
       lastBlinkTime = millis();
-      slowLedState = !slowLedState;
-      setStatusLed(slowLedState);
+      blinkLedState = !blinkLedState;
+      setStatusLed(blinkLedState);
     }
   } else {
     setStatusLed(true);   // Solid ON while linked
